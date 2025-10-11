@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgis/postgis:16-master
+    ports:
+      - 5580:5432
+    volumes:
+      - postgres-quizbox:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=quizbox
+      - POSTGRES_USER=quizbox
+      - POSTGRES_DB=quizbox
+  server:
+    image: mrdog210/quizblox:latest
+    ports: 
+      - 5581:3000
+    environment:
+      - POSTGRES_USERNAME=quizbox
+      - POSTGRES_PASSWORD=quizbox
+      - POSTGRES_DATABASE=quizbox
+      
+volumes:
+  postgres-quizbox:
