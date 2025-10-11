@@ -10,13 +10,14 @@ services:
       - POSTGRES_USER=quizbox
       - POSTGRES_DB=quizbox
   server:
-    image: mrdog210/quizblox:latest
+    image: mrdog210/quizblox:main
     ports: 
       - 5581:3000
     environment:
       - POSTGRES_USERNAME=quizbox
       - POSTGRES_PASSWORD=quizbox
       - POSTGRES_DATABASE=quizbox
+      - POSTGRES_PORT=5580
       
 volumes:
   postgres-quizbox:
