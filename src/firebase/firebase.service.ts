@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { FIREBASE_ADMIN } from './firebase.constants';
 import * as admin from 'firebase-admin';
 
-
 @Injectable()
 export class FirebaseService {
   constructor(
