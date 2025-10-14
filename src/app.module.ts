@@ -10,6 +10,7 @@ import { SubjectsModule } from './subjects/subjects.module';
 import { QuestionsModule } from './questions/questions.module';
 import { AnswersModule } from './answers/answers.module';
 import { QuizzesModule } from './quizzes/quizzes.module';
+import { SessionsModule } from './sessions/sessions.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { QuizzesModule } from './quizzes/quizzes.module';
     QuestionsModule,
     AnswersModule,
     QuizzesModule,
+    SessionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
