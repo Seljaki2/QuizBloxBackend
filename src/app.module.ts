@@ -19,7 +19,7 @@ import { UsersModule } from './users/users.module';
       username: process.env.POSTGRES_USERNAME ?? 'quizbox',
       password: process.env.POSTGRES_PASSWORD ?? 'quizbox',
       database: process.env.POSTGRES_DATABASE ?? 'quizbox',
-      entities: [],
+      autoLoadEntities: true,
       synchronize: true,
     }),
     FirebaseModule,
