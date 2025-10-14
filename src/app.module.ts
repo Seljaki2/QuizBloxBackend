@@ -11,6 +11,7 @@ import { QuestionsModule } from './questions/questions.module';
 import { AnswersModule } from './answers/answers.module';
 import { QuizzesModule } from './quizzes/quizzes.module';
 import { SessionsModule } from './sessions/sessions.module';
+import { ResultsModule } from './results/results.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { SessionsModule } from './sessions/sessions.module';
     AnswersModule,
     QuizzesModule,
     SessionsModule,
+    ResultsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
