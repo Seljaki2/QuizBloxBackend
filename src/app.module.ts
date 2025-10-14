@@ -7,6 +7,8 @@ import { FirebaseModule } from './firebase/firebase.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { SubjectsModule } from './subjects/subjects.module';
+import { QuestionsModule } from './questions/questions.module';
+import { AnswersModule } from './answers/answers.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { SubjectsModule } from './subjects/subjects.module';
     AuthModule,
     UsersModule,
     SubjectsModule,
+    QuestionsModule,
+    AnswersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
