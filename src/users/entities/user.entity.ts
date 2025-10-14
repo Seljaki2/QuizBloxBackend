@@ -1,5 +1,6 @@
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
 import { Base } from '../../common/entities/base.entity';
+import { Quiz } from 'src/quizzes/entities/quiz.entity';
 
 @Entity()
 export class User extends Base {
@@ -20,4 +21,7 @@ export class User extends Base {
 
   @Column()
   isAdmin: boolean;
+
+  @OneToMany(() => Quiz, (quiz) => quiz.creator)
+  quizzes: Quiz[];
 }
