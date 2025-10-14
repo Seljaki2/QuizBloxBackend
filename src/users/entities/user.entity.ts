@@ -1,6 +1,7 @@
 import { Column, Entity, OneToMany } from 'typeorm';
 import { Base } from '../../common/entities/base.entity';
 import { Quiz } from 'src/quizzes/entities/quiz.entity';
+import { Result } from '../../results/entities/result.entity';
 
 @Entity()
 export class User extends Base {
@@ -24,4 +25,7 @@ export class User extends Base {
 
   @OneToMany(() => Quiz, (quiz) => quiz.creator)
   quizzes: Quiz[];
+
+  @OneToMany(() => Result, (result) => result.user)
+  results: Result[];
 }
