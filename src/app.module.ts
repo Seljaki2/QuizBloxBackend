@@ -5,6 +5,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { FirebaseModule } from './firebase/firebase.module';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { SubjectsModule } from './subjects/subjects.module';
+import { QuestionsModule } from './questions/questions.module';
+import { AnswersModule } from './answers/answers.module';
+import { QuizzesModule } from './quizzes/quizzes.module';
+import { SessionsModule } from './sessions/sessions.module';
+import { ResultsModule } from './results/results.module';
 
 @Module({
   imports: [
@@ -18,11 +25,18 @@ import { AuthModule } from './auth/auth.module';
       username: process.env.POSTGRES_USERNAME ?? 'quizbox',
       password: process.env.POSTGRES_PASSWORD ?? 'quizbox',
       database: process.env.POSTGRES_DATABASE ?? 'quizbox',
-      entities: [],
+      autoLoadEntities: true,
       synchronize: true,
     }),
     FirebaseModule,
     AuthModule,
+    UsersModule,
+    SubjectsModule,
+    QuestionsModule,
+    AnswersModule,
+    QuizzesModule,
+    SessionsModule,
+    ResultsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
