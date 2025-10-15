@@ -25,7 +25,8 @@ export class RolesGuard implements CanActivate {
     
     const token = authHeader.split(' ')[1];
     const decodedToken = await this.firebaseService.getAuth().verifyIdToken(token);
-
+    request.user = decodedToken;
+    
     const { uid } = decodedToken;
     const user = await this.usersService.getById(uid)
 

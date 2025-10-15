@@ -4,7 +4,6 @@ import { FirebaseAuthGuard } from 'src/auth/auth.guard';
 import { type FirebasePayload, GetPayload } from 'src/auth/get-user.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { IsAdmin } from 'src/auth/admin.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -21,7 +20,6 @@ export class UsersController {
 
   @Get('me')
   @UseGuards(FirebaseAuthGuard)
-  @IsAdmin()
   async getMe(
     @GetPayload() payload: FirebasePayload
   ) {
