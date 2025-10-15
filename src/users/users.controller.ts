@@ -13,7 +13,6 @@ export class UsersController {
 
   @Get()
   async getAll() {
-
     return {
       users: await this.usersService.getAll()
     }
