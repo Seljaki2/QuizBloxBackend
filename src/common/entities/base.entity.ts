@@ -5,7 +5,7 @@ import {
 } from 'typeorm';
 
 export class Base {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @CreateDateColumn()

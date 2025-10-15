@@ -1,10 +1,14 @@
-import { Column, Entity, OneToMany } from 'typeorm';
-import { Base } from '../../common/entities/base.entity';
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 import { Quiz } from 'src/quizzes/entities/quiz.entity';
 import { Result } from '../../results/entities/result.entity';
 
 @Entity()
-export class User extends Base {
+export class User {
+  @PrimaryColumn("varchar", {
+    length: 28
+  })
+  id: string;
+  
   @Column()
   firstName: string;
 
@@ -20,7 +24,7 @@ export class User extends Base {
   @Column()
   isTeacher: boolean;
 
-  @Column()
+  @Column({ default: false })
   isAdmin: boolean;
 
   @OneToMany(() => Quiz, (quiz) => quiz.creator)
@@ -28,4 +32,10 @@ export class User extends Base {
 
   @OneToMany(() => Result, (result) => result.user)
   results: Result[];
+
+  @CreateDateColumn()
+  createdAt: Date;
+  
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
