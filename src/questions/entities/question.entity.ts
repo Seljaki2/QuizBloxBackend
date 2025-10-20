@@ -1,4 +1,11 @@
-import { Column, Entity, JoinTable, ManyToMany } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from 'typeorm';
 import { Base } from '../../common/entities/base.entity';
 import { Answer } from '../../answers/entities/answer.entity';
 
@@ -14,6 +21,10 @@ export class Question extends Base {
   @JoinTable({ name: 'question_answer' })
   answers: Answer[];
 
-  @Column('json')
+  @ManyToOne(() => Answer, { nullable: false })
+  @JoinColumn({ name: 'correct_answer_id' })
+  correctAnswer: Answer;
+
+  @Column('json', { nullable: true })
   options?: any;
 }
