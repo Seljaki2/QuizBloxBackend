@@ -32,6 +32,7 @@ export class QuestionsController {
     return await this.questionsService.create(createQuestionDto);
   }
 
+  /*
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -39,6 +40,8 @@ export class QuestionsController {
   ) {
     return await this.questionsService.update(id, updateQuestionDto);
   }
+
+   */
 
   @Delete(':id')
   async delete(@Param('id') id: string): Promise<DeleteResult> {

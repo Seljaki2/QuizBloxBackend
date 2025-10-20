@@ -8,9 +8,6 @@ export class Answer extends Base {
   @Column({ nullable: false })
   text: string;
 
-  @Column({ nullable: false })
-  isCorrect: boolean;
-
   @ManyToMany(() => Question)
   questions: Question[];
 

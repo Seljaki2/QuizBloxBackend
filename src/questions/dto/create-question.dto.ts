@@ -1,5 +1,4 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { Answer } from '../../answers/entities/answer.entity';
 
 export class CreateQuestionDto {
   @IsString()
@@ -11,7 +10,10 @@ export class CreateQuestionDto {
   media: string;
 
   @IsNotEmpty()
-  answers: Answer[];
+  answers: string[];
+
+  @IsNotEmpty()
+  correctAnswer: string;
 
   @IsOptional()
   options: any;
