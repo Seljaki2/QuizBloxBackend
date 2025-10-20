@@ -27,8 +27,17 @@ export class QuestionsService {
     const answers: Answer[] = [];
 
     for (const answerText of createQuestionDto.answers) {
-      const answer = this.answersRepository.create({ text: answerText });
-      answers.push(await this.answersRepository.save(answer));
+      let answer = await this.answersRepository.findOneBy({
+        text: answerText,
+      });
+
+      if (!answer) {
+        answer = await this.answersRepository.save(
+          this.answersRepository.create({ text: answerText }),
+        );
+      }
+
+      answers.push(answer);
     }
 
     const correctAnswer = await this.answersRepository.findOneBy({
