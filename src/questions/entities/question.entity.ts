@@ -14,6 +14,6 @@ export class Question extends Base {
   @JoinTable({ name: 'question_answer' })
   answers: Answer[];
 
-  @Column('json')
+  @Column('json', { nullable: true })
   options?: any;
 }
