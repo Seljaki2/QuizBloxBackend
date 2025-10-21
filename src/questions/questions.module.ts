@@ -9,5 +9,6 @@ import { Answer } from '../answers/entities/answer.entity';
   imports: [TypeOrmModule.forFeature([Question, Answer])],
   controllers: [QuestionsController],
   providers: [QuestionsService],
+  exports: [QuestionsService],
 })
 export class QuestionsModule {}
