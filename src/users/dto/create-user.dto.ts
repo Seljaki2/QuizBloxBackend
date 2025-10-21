@@ -1,19 +1,19 @@
-import { IsBoolean, IsEmpty, IsString } from "class-validator";
-import { BaseDto } from "src/common/dtos/base.dto";
+import { IsBoolean, IsEmpty, IsString } from 'class-validator';
+import { BaseDto } from 'src/common/dtos/base.dto';
 
 export class CreateUserDto extends BaseDto {
   @IsString()
-  firstName: string
+  firstName: string;
 
   @IsString()
-  lastName: string
+  lastName: string;
 
   @IsString()
-  username: string
+  username: string;
 
   @IsBoolean()
-  isTeacher: boolean
+  isTeacher: boolean;
 
   @IsEmpty()
-  isAdmin?: boolean
+  isAdmin?: boolean;
 }

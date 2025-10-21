@@ -13,16 +13,20 @@ import * as admin from 'firebase-admin';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const saBase64 = config.get<string>('FIREBASE_SERVICE_ACCOUNT_BASE64');
-        if(!saBase64)
-          throw new Error("No firebase admin service account base64 string found!")
-        const saJson = JSON.parse(Buffer.from(saBase64, 'base64').toString()) as admin.ServiceAccount;
+        if (!saBase64)
+          throw new Error(
+            'No firebase admin service account base64 string found!',
+          );
+        const saJson = JSON.parse(
+          Buffer.from(saBase64, 'base64').toString(),
+        ) as admin.ServiceAccount;
         return admin.initializeApp({
-          credential: admin.credential.cert(saJson)
-        })
-      }
+          credential: admin.credential.cert(saJson),
+        });
+      },
     },
-    FirebaseService
+    FirebaseService,
   ],
-  exports: [FirebaseService]
+  exports: [FirebaseService],
 })
 export class FirebaseModule {}

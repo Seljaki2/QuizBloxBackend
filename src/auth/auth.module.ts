@@ -5,12 +5,10 @@ import { UsersModule } from 'src/users/users.module';
 @Module({
   providers: [
     {
-      provide: "APP_GUARD",
-      useClass: RolesGuard
-    }
+      provide: 'APP_GUARD',
+      useClass: RolesGuard,
+    },
   ],
-  imports: [
-    UsersModule
-  ]
+  imports: [UsersModule],
 })
 export class AuthModule {}

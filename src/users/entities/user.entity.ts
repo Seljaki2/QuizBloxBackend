@@ -1,14 +1,21 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { Quiz } from 'src/quizzes/entities/quiz.entity';
 import { Result } from '../../results/entities/result.entity';
 
 @Entity()
 export class User {
-  @PrimaryColumn("varchar", {
-    length: 28
+  @PrimaryColumn('varchar', {
+    length: 28,
   })
   id: string;
-  
+
   @Column()
   firstName: string;
 
@@ -35,7 +42,7 @@ export class User {
 
   @CreateDateColumn()
   createdAt: Date;
-  
+
   @UpdateDateColumn()
   updatedAt: Date;
 }

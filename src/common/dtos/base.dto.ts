@@ -1,13 +1,12 @@
-import { IsEmpty } from "class-validator";
-
+import { IsEmpty } from 'class-validator';
 
 export class BaseDto {
   @IsEmpty()
-  id?: string
+  id?: string;
 
   @IsEmpty()
-  createdAt?: Date
+  createdAt?: Date;
 
   @IsEmpty()
-  updatedAt?: Date
+  updatedAt?: Date;
 }

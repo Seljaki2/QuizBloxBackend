@@ -14,9 +14,7 @@ export class AppController {
 
   @UseGuards(FirebaseAuthGuard)
   @Get('/testAuth')
-  testAuth(
-    @GetPayload() payload: FirebasePayload
-  ) {
-    return payload
+  testAuth(@GetPayload() payload: FirebasePayload) {
+    return payload;
   }
 }

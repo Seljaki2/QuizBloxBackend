@@ -7,7 +7,6 @@ export class FirebaseService {
   constructor(
     @Inject(FIREBASE_ADMIN) private readonly firebaseApp: admin.app.App,
   ) {}
-  
 
   getAuth() {
     return this.firebaseApp.auth();
