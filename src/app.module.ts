@@ -12,6 +12,9 @@ import { AnswersModule } from './answers/answers.module';
 import { QuizzesModule } from './quizzes/quizzes.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { ResultsModule } from './results/results.module';
+import { MediaModule } from './media/media.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -28,6 +31,10 @@ import { ResultsModule } from './results/results.module';
       autoLoadEntities: true,
       synchronize: true,
     }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
+    }),
     FirebaseModule,
     AuthModule,
     UsersModule,
@@ -37,6 +44,7 @@ import { ResultsModule } from './results/results.module';
     QuizzesModule,
     SessionsModule,
     ResultsModule,
+    MediaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

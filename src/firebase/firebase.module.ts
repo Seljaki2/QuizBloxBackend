@@ -22,6 +22,7 @@ import * as admin from 'firebase-admin';
         ) as admin.ServiceAccount;
         return admin.initializeApp({
           credential: admin.credential.cert(saJson),
+          storageBucket: config.get<string>('FIREBASE_STORAGE_BUCKET'),
         });
       },
     },
