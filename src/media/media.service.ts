@@ -6,7 +6,7 @@ import { unlink } from 'fs';
 import path from 'path';
 import { UPLOAD_DESTINATION } from 'src/media/upload-destination';
 import { v4 as uuidv4 } from 'uuid';
-import fs from 'fs';
+import { promises as fsPromises } from 'fs';
 
 @Injectable()
 export class MediaService {
@@ -17,14 +17,29 @@ export class MediaService {
   async uploadMedia(file: Express.Multer.File): Promise<Media> {
     const id = uuidv4();
     const filename = `${id}-${file.originalname}`;
-    fs.writeFileSync(path.join(UPLOAD_DESTINATION, filename), file.buffer);
+    const targetPath = path.join(UPLOAD_DESTINATION, filename);
+    console.log('UPLOADING FILE');
+    try {
+      // make sure uploads folder exists
+      //await fsPromises.mkdir(UPLOAD_DESTINATION, { recursive: true });
 
-    const mediaEntity = this.media.create({
-      id,
-      path: filename,
-    });
+      if (!file || !file.buffer) {
+        throw new Error('No file buffer provided (check multer config).');
+      }
 
-    return this.media.save(mediaEntity);
+      await fsPromises.writeFile(targetPath, file.buffer);
+
+      const mediaEntity = this.media.create({
+        id,
+        path: filename,
+      });
+
+      return await this.media.save(mediaEntity);
+    } catch (err) {
+      // log full error so you can see EACCES / EROFS etc
+      console.error('uploadMedia error:', err);
+      throw err; // rethrow or convert to HttpException as appropriate
+    }
   }
 
   getFile(mediaId: string) {
