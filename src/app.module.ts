@@ -12,7 +12,7 @@ import { AnswersModule } from './answers/answers.module';
 import { QuizzesModule } from './quizzes/quizzes.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { ResultsModule } from './results/results.module';
-import { MediaModule } from './media/media.module';
+//import { MediaModule } from './media/media.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 
@@ -44,7 +44,7 @@ import { join } from 'path';
     QuizzesModule,
     SessionsModule,
     ResultsModule,
-    MediaModule,
+    //MediaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,24 +1,37 @@
 import {
   Controller,
   Delete,
-  HttpException,
+  FileTypeValidator,
+  MaxFileSizeValidator,
   Param,
+  ParseFilePipe,
   Post,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { MediaService } from './media.service';
-import { UploadFileInterceptor } from './upload-file.interceptor';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { FILES_IMAGES } from './file-types';
 
 @Controller('media')
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
   @Post('upload')
-  @UseInterceptors(UploadFileInterceptor('file'))
-  async uploadMedia(@UploadedFile() file?: Express.Multer.File) {
-    if (!file) throw new HttpException('No file uploaded', 400);
-    return this.mediaService.createFile(file.filename); //this.mediaService.uploadFile(file.buffer, file.mimetype);
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadMedia(
+    @UploadedFile(
+      new ParseFilePipe({
+        fileIsRequired: true,
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5 MB
+          new FileTypeValidator({ fileType: FILES_IMAGES }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.mediaService.createFile(file); //this.mediaService.uploadFile(file.buffer, file.mimetype);
   }
 
   @Delete(':id')

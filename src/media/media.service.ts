@@ -5,6 +5,8 @@ import { Repository } from 'typeorm';
 import { unlink } from 'fs';
 import path from 'path';
 import { UPLOAD_DESTINATION } from 'src/media/upload-destination';
+import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
 
 @Injectable()
 export class MediaService {
@@ -12,10 +14,16 @@ export class MediaService {
     @InjectRepository(Media) private readonly media: Repository<Media>,
   ) {}
 
-  async createFile(filename: string): Promise<Media> {
+  async createFile(file: Express.Multer.File): Promise<Media> {
+    const id = uuidv4();
+    const filename = `${id}-${file.originalname}`;
+    fs.writeFileSync(path.join(UPLOAD_DESTINATION, filename), file.buffer);
+
     const mediaEntity = this.media.create({
+      id,
       path: filename,
     });
+
     return this.media.save(mediaEntity);
   }
 
