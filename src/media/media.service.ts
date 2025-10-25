@@ -14,7 +14,7 @@ export class MediaService {
     @InjectRepository(Media) private readonly media: Repository<Media>,
   ) {}
 
-  async createFile(file: Express.Multer.File): Promise<Media> {
+  async uploadMedia(file: Express.Multer.File): Promise<Media> {
     const id = uuidv4();
     const filename = `${id}-${file.originalname}`;
     fs.writeFileSync(path.join(UPLOAD_DESTINATION, filename), file.buffer);
@@ -31,7 +31,7 @@ export class MediaService {
     return this.media.findOneBy({ id: mediaId });
   }
 
-  async deleteFile(mediaId: string): Promise<void> {
+  async deleteMedia(mediaId: string): Promise<void> {
     const media = await this.getFile(mediaId);
     if (!media) {
       throw new Error('Media not found');

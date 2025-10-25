@@ -31,11 +31,11 @@ export class MediaController {
     )
     file: Express.Multer.File,
   ) {
-    return this.mediaService.createFile(file); //this.mediaService.uploadFile(file.buffer, file.mimetype);
+    return this.mediaService.uploadMedia(file); //this.mediaService.uploadFile(file.buffer, file.mimetype);
   }
 
   @Delete(':id')
   async deleteMedia(@Param('id') mediaId: string) {
-    return this.mediaService.deleteFile(mediaId);
+    return this.mediaService.deleteMedia(mediaId);
   }
 }

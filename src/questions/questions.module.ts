@@ -4,9 +4,10 @@ import { Question } from './entities/question.entity';
 import { QuestionsController } from './questions.controller';
 import { QuestionsService } from './questions.service';
 import { Answer } from '../answers/entities/answer.entity';
+import { MediaModule } from 'src/media/media.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Question, Answer])],
+  imports: [TypeOrmModule.forFeature([Question, Answer]), MediaModule],
   controllers: [QuestionsController],
   providers: [QuestionsService],
   exports: [QuestionsService],

@@ -1,10 +1,13 @@
-import { Injectable } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Question } from './entities/question.entity';
 import { DeleteResult, Repository, UpdateResult } from 'typeorm';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { UpdateQuestionDto } from './dto/update-question.dto';
 import { Answer } from '../answers/entities/answer.entity';
+import { Media } from 'src/media/entities/media.entity';
+import { MediaService } from 'src/media/media.service';
 
 @Injectable()
 export class QuestionsService {
@@ -13,6 +16,7 @@ export class QuestionsService {
     private readonly questionsRepository: Repository<Question>,
     @InjectRepository(Answer)
     private readonly answersRepository: Repository<Answer>,
+    private readonly mediaService: MediaService,
   ) {}
 
   async findAll(): Promise<Question[]> {
@@ -23,7 +27,10 @@ export class QuestionsService {
     return await this.questionsRepository.findOneBy({ id: id });
   }
 
-  async create(createQuestionDto: CreateQuestionDto): Promise<Question> {
+  async create(
+    createQuestionDto: CreateQuestionDto,
+    media?: Media,
+  ): Promise<Question> {
     const answers: Answer[] = [];
 
     for (const answerText of createQuestionDto.answers) {
@@ -49,19 +56,33 @@ export class QuestionsService {
         ...createQuestionDto,
         answers: answers,
         correctAnswer: correctAnswer!,
+        media,
       }),
     );
   }
 
-  /*
   async update(
     id: string,
     updateQuestionDto: UpdateQuestionDto,
+    media?: Media,
   ): Promise<UpdateResult> {
     const question = await this.questionsRepository.findOneBy({ id: id });
-    return this.questionsRepository.update({ id: id }, updateQuestionDto);
+    if (!question) throw new NotFoundException("Question doesn't exist!");
+
+    if (media && question.media) {
+      await this.mediaService.deleteMedia(question.media.id);
+    }
+
+    const { answers, correctAnswer, ...validOptions } = updateQuestionDto;
+    return this.questionsRepository.update(
+      { id: id },
+      {
+        //...updateQuestionDto,
+        ...validOptions,
+        media,
+      },
+    );
   }
-  */
 
   async delete(id: string): Promise<DeleteResult> {
     return await this.questionsRepository.delete({ id: id });

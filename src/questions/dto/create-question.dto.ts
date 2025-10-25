@@ -5,10 +5,6 @@ export class CreateQuestionDto {
   @IsOptional()
   text: string;
 
-  @IsString()
-  @IsOptional()
-  media: string;
-
   @IsNotEmpty()
   answers: string[];
 

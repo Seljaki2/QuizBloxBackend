@@ -5,17 +5,16 @@ import {
   JoinTable,
   ManyToMany,
   ManyToOne,
+  OneToOne,
 } from 'typeorm';
 import { Base } from '../../common/entities/base.entity';
 import { Answer } from '../../answers/entities/answer.entity';
+import { Media } from 'src/media/entities/media.entity';
 
 @Entity()
 export class Question extends Base {
   @Column({ nullable: true })
   text: string;
-
-  @Column({ nullable: true })
-  media: string;
 
   @ManyToMany(() => Answer)
   @JoinTable({ name: 'question_answer' })
@@ -24,6 +23,9 @@ export class Question extends Base {
   @ManyToOne(() => Answer, { nullable: false })
   @JoinColumn({ name: 'correct_answer_id' })
   correctAnswer: Answer;
+
+  @OneToOne(() => Media, { nullable: true })
+  media?: Media;
 
   @Column('json', { nullable: true })
   options?: any;
