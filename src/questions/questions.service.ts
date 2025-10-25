@@ -85,6 +85,10 @@ export class QuestionsService {
   }
 
   async delete(id: string): Promise<DeleteResult> {
+    const question = await this.questionsRepository.findOneBy({ id: id });
+    if (!question) throw new NotFoundException("Question doesn't exist!");
+
+    if (question.media) await this.mediaService.deleteMedia(question.media.id);
     return await this.questionsRepository.delete({ id: id });
   }
 }
