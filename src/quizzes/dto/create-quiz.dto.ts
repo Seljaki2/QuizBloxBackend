@@ -1,5 +1,4 @@
-import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { CreateQuestionDto } from '../../questions/dto/create-question.dto';
+import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
 
 export class CreateQuizDto {
   @IsString()
@@ -10,15 +9,7 @@ export class CreateQuizDto {
   @IsNotEmpty()
   description: string;
 
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
-  subject: string;
-
-  @IsString()
-  @IsOptional()
-  image: string;
-
-  @IsArray()
-  @IsNotEmpty()
-  questions: CreateQuestionDto[];
+  subjectId: string;
 }

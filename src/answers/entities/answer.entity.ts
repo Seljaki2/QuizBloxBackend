@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToMany, OneToMany, OneToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, OneToOne } from 'typeorm';
 import { Base } from '../../common/entities/base.entity';
 import { Question } from '../../questions/entities/question.entity';
 import { Result } from '../../results/entities/result.entity';
@@ -9,10 +9,19 @@ export class Answer extends Base {
   @Column({ nullable: false })
   text: string;
 
-  @ManyToMany(() => Question)
-  questions: Question[];
+  @Column({ type: 'int', default: 0 })
+  position: number;
 
-  @OneToMany(() => Result, (result) => result.answer)
+  @Column({ type: 'boolean', default: false })
+  isCorrect: boolean;
+
+  @ManyToOne(() => Question, (question) => question.answers, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
+  question: Question;
+
+  @OneToMany(() => Result, (result) => result.answer, { nullable: true })
   results: Result[];
 
   @OneToOne(() => Media, { nullable: true })

@@ -2,31 +2,34 @@ import {
   Column,
   Entity,
   JoinColumn,
-  JoinTable,
-  ManyToMany,
   ManyToOne,
+  OneToMany,
   OneToOne,
 } from 'typeorm';
 import { Base } from '../../common/entities/base.entity';
 import { Answer } from '../../answers/entities/answer.entity';
 import { Media } from 'src/media/entities/media.entity';
+import { QuestionType } from './question-type.entity';
 
 @Entity()
 export class Question extends Base {
-  @Column({ nullable: true })
+  @Column({ nullable: false })
   text: string;
 
-  @ManyToMany(() => Answer)
-  @JoinTable({ name: 'question_answer' })
-  answers: Answer[];
-
-  @ManyToOne(() => Answer, { nullable: false })
-  @JoinColumn({ name: 'correct_answer_id' })
-  correctAnswer: Answer;
+  @OneToMany(() => Answer, (answer) => answer.question, {
+    cascade: true,
+    eager: true,
+    nullable: true,
+  })
+  answers?: Answer[];
 
   @OneToOne(() => Media, { nullable: true })
   media?: Media;
 
-  @Column('json', { nullable: true })
-  options?: any;
+  @ManyToOne(() => QuestionType)
+  @JoinColumn()
+  questionType: QuestionType;
+
+  @Column({ nullable: true })
+  customTime: number;
 }

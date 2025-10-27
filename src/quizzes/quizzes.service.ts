@@ -1,13 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository, UpdateResult } from 'typeorm';
 import { Quiz } from './entities/quiz.entity';
 import { CreateQuizDto } from './dto/create-quiz.dto';
 import { Subject } from '../subjects/entities/subject.entity';
-import { QuestionsService } from '../questions/questions.service';
 import type { FirebasePayload } from '../auth/get-user.decorator';
 import { UsersService } from '../users/users.service';
-import { Question } from '../questions/entities/question.entity';
+import { UpdateQuizDto } from './dto/update-quiz.dto';
 
 @Injectable()
 export class QuizzesService {
@@ -16,13 +15,12 @@ export class QuizzesService {
     private readonly quizzesRepository: Repository<Quiz>,
     @InjectRepository(Subject)
     private readonly subjectRepository: Repository<Subject>,
-    private readonly questionsService: QuestionsService,
     private readonly usersService: UsersService,
   ) {}
 
   async findAll(): Promise<Quiz[]> {
     return await this.quizzesRepository.find({
-      relations: ['questions', 'questions.answers', 'questions.correctAnswer'],
+      relations: ['questions'],
     });
   }
 
@@ -35,39 +33,25 @@ export class QuizzesService {
     payload: FirebasePayload,
   ): Promise<Quiz> {
     const subject = await this.subjectRepository.findOneBy({
-      name: createQuizDto.subject,
+      id: createQuizDto.subjectId,
     });
-
-    if (!subject) {
-      throw new NotFoundException(`Subject ${createQuizDto.subject} not found`);
-    }
-
     const creator = await this.usersService.getById(payload.user_id);
-
-    if (!creator) {
-      throw new NotFoundException('User not found');
-    }
-
-    const questions: Question[] = [];
-
-    for (const createQuestionDto of createQuizDto.questions) {
-      const question = await this.questionsService.create(createQuestionDto);
-      questions.push(question);
-    }
 
     return await this.quizzesRepository.save(
       this.quizzesRepository.create({
         name: createQuizDto.name,
         description: createQuizDto.description,
-        subject,
-        creator,
-        questions,
+        subject: subject!,
+        creator: creator!,
       }),
     );
   }
 
-  async update(id: string, updatedQuiz: Partial<Quiz>): Promise<UpdateResult> {
-    return await this.quizzesRepository.update(id, updatedQuiz);
+  async update(
+    id: string,
+    updateQuizDto: UpdateQuizDto,
+  ): Promise<UpdateResult> {
+    return await this.quizzesRepository.update(id, updateQuizDto);
   }
 
   async delete(id: string): Promise<DeleteResult> {
