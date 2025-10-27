@@ -6,12 +6,15 @@ import { CreateAnswerDto } from './dto/create-answer.dto';
 import { UpdateAnswerDto } from './dto/update-answer.dto';
 import { Media } from 'src/media/entities/media.entity';
 import { MediaService } from 'src/media/media.service';
+import { Question } from '../questions/entities/question.entity';
 
 @Injectable()
 export class AnswersService {
   constructor(
     @InjectRepository(Answer)
     private readonly answersRepository: Repository<Answer>,
+    @InjectRepository(Question)
+    private readonly questionsRepository: Repository<Question>,
     private readonly mediaService: MediaService,
   ) {}
 
@@ -27,12 +30,22 @@ export class AnswersService {
     createAnswerDto: CreateAnswerDto,
     media?: Media,
   ): Promise<Answer> {
-    return await this.answersRepository.save(
-      this.answersRepository.create({
-        ...createAnswerDto,
-        media,
-      }),
-    );
+    const question = await this.questionsRepository.findOneBy({
+      id: createAnswerDto.questionId,
+    });
+
+    if (!question) {
+      throw new NotFoundException('Question not found');
+    }
+
+    const answer = this.answersRepository.create({
+      text: createAnswerDto.text,
+      isCorrect: createAnswerDto.isCorrect !== '0',
+      question: question,
+      media,
+    });
+
+    return await this.answersRepository.save(answer);
   }
 
   async update(
@@ -44,7 +57,29 @@ export class AnswersService {
     if (!answer) throw new NotFoundException("Anwser doesn't exist!");
     if (media && answer.media)
       await this.mediaService.deleteMedia(answer.media.id);
-    return this.answersRepository.update({ id: id }, updateAnswerDto);
+
+    const question = await this.questionsRepository.findOneBy({
+      id: updateAnswerDto.questionId,
+    });
+
+    if (!question) {
+      throw new NotFoundException('Question not found');
+    }
+
+    const isCorrect =
+      updateAnswerDto.isCorrect != null
+        ? updateAnswerDto.isCorrect !== '0'
+        : answer.isCorrect;
+
+    return this.answersRepository.update(
+      { id: id },
+      {
+        text: updateAnswerDto.text,
+        media: media,
+        isCorrect: isCorrect,
+        question: question,
+      },
+    );
   }
 
   async delete(id: string): Promise<DeleteResult> {
