@@ -14,6 +14,7 @@ import { CreateQuizDto } from './dto/create-quiz.dto';
 import { type FirebasePayload, GetPayload } from '../auth/get-user.decorator';
 import { FirebaseAuthGuard } from '../auth/auth.guard';
 import { DeleteResult, UpdateResult } from 'typeorm';
+import { UpdateQuizDto } from './dto/update-quiz.dto';
 
 @Controller('quizzes')
 export class QuizzesController {
@@ -41,9 +42,9 @@ export class QuizzesController {
   @Patch(':id')
   async update(
     @Param('id') id: string,
-    @Body() updatedQuiz: Partial<Quiz>,
+    @Body() updatedQuizDto: UpdateQuizDto,
   ): Promise<UpdateResult> {
-    return await this.quizzesService.update(id, updatedQuiz);
+    return await this.quizzesService.update(id, updatedQuizDto);
   }
 
   @Delete(':id')
