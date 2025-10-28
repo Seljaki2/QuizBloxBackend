@@ -1,15 +1,13 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  OneToOne,
-} from 'typeorm';
+import { Column, Entity, OneToMany, OneToOne } from 'typeorm';
 import { Base } from '../../common/entities/base.entity';
 import { Answer } from '../../answers/entities/answer.entity';
 import { Media } from 'src/media/entities/media.entity';
-import { QuestionType } from './question-type.entity';
+
+export enum QuestionType {
+  CUSTOM_ANWSER = 'CUSTOM_ANWSER',
+  MEDIA_ANWSER = 'MEDIA_ANWSER',
+  PRESET_ANWSER = 'PRESET_ANWSER',
+}
 
 @Entity()
 export class Question extends Base {
@@ -26,10 +24,9 @@ export class Question extends Base {
   @OneToOne(() => Media, { nullable: true })
   media?: Media;
 
-  @ManyToOne(() => QuestionType)
-  @JoinColumn()
-  questionType: QuestionType;
-
   @Column({ nullable: true })
   customTime: number;
+
+  @Column({ type: 'enum', enum: QuestionType })
+  questionType: QuestionType;
 }
