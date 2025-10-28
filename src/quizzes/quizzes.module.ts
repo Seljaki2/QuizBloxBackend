@@ -15,5 +15,6 @@ import { UsersModule } from '../users/users.module';
   ],
   controllers: [QuizzesController],
   providers: [QuizzesService],
+  exports: [QuizzesService],
 })
 export class QuizzesModule {}

@@ -6,10 +6,10 @@ import { Repository } from 'typeorm';
 @Injectable()
 export class SessionsService {
   constructor(
-    @InjectRepository(Session) private readonly session: Repository<Session>
+    @InjectRepository(Session) private readonly session: Repository<Session>,
   ) {}
 
-  create(s: Session) {
-    return this.session.save(this.session.create(s))
+  create(s: Partial<Session>) {
+    return this.session.save(this.session.create(s));
   }
 }
