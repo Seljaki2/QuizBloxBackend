@@ -4,9 +4,10 @@ import { Session } from './entities/session.entity';
 import { SessionsGateway } from './sessions.gateway';
 import { FirebaseModule } from 'src/firebase/firebase.module';
 import { UsersModule } from 'src/users/users.module';
+import { SessionsService } from './sessions.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Session]), FirebaseModule, UsersModule],
-  providers: [SessionsGateway],
+  providers: [SessionsGateway, SessionsService],
 })
 export class SessionsModule {}

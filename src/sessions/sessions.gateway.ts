@@ -1,8 +1,12 @@
+import { SessionsService } from './sessions.service';
 import { UsePipes, ValidationPipe } from '@nestjs/common';
-import { SubscribeMessage, WebSocketGateway, WebSocketServer, WsException } from '@nestjs/websockets';
+import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer, WsException } from '@nestjs/websockets';
 import { type Server, type Socket } from 'socket.io';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { UsersService } from 'src/users/users.service';
+import { CreateSessionDto } from './dto/create-session.dto';
+import { WsCurrentUser } from 'src/auth/ws-get-user.decorator';
+import type { FirebasePayload } from 'src/auth/get-user.decorator';
 
 @WebSocketGateway({
   cors: true
@@ -11,7 +15,8 @@ import { UsersService } from 'src/users/users.service';
 export class SessionsGateway {
   constructor(
     private readonly firebaseService: FirebaseService,
-    private readonly usersService: UsersService
+    private readonly usersService: UsersService,
+    private readonly sessionsService: SessionsService
   ) {}
   @WebSocketServer()
   server: Server;
@@ -40,6 +45,22 @@ export class SessionsGateway {
   @SubscribeMessage('message')
   handleMessage(client: Socket, payload: any): string {
     console.log("TEST")
+    return 'Hello world!';
+  }
+
+  @SubscribeMessage('create-session') 
+  async createSession(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() createSessionDto: CreateSessionDto,
+    @WsCurrentUser() user: FirebasePayload
+  ) {
+
+    const { quizId } = createSessionDto
+    const session = await this.sessionsService.create({
+      quiz: quizId,
+      host: user.uid,
+      
+    })
     return 'Hello world!';
   }
 }
