@@ -8,15 +8,12 @@ import { Answer } from '../answers/entities/answer.entity';
 import { Media } from 'src/media/entities/media.entity';
 import { MediaService } from 'src/media/media.service';
 import { Quiz } from '../quizzes/entities/quiz.entity';
-import { QuestionType } from './entities/question-type.entity';
 
 @Injectable()
 export class QuestionsService {
   constructor(
     @InjectRepository(Question)
     private readonly questionsRepository: Repository<Question>,
-    @InjectRepository(QuestionType)
-    private readonly questionsTypeRepository: Repository<QuestionType>,
     @InjectRepository(Answer)
     private readonly answersRepository: Repository<Answer>,
     @InjectRepository(Quiz)
@@ -45,14 +42,9 @@ export class QuestionsService {
       throw new NotFoundException('Quiz not found');
     }
 
-    const questionType = await this.questionsTypeRepository.findOneBy({
-      id: createQuestionDto.questionTypeId,
-    });
-
     const question = await this.questionsRepository.save(
       this.questionsRepository.create({
         ...createQuestionDto,
-        questionType: questionType!,
         media,
       }),
     );
@@ -77,15 +69,10 @@ export class QuestionsService {
       await this.mediaService.deleteMedia(question.media.id);
     }
 
-    const questionType = await this.questionsTypeRepository.findOneBy({
-      id: updateQuestionDto.questionTypeId,
-    });
-
     return this.questionsRepository.update(
       { id: id },
       {
         text: updateQuestionDto.text,
-        questionType: questionType!,
         media,
       },
     );
