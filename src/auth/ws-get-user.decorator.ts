@@ -1,9 +1,10 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { type Socket } from 'socket.io';
 import { FirebasePayload } from './get-user.decorator';
+import { User } from 'src/users/entities/user.entity';
 
 export const WsCurrentUser = createParamDecorator(
-  (data: unknown, context: ExecutionContext): FirebasePayload => {
+  (data: unknown, context: ExecutionContext): User => {
     const client: Socket = context.switchToWs().getClient();
     const user = client.data.user;
     if (!user) 
@@ -14,7 +15,7 @@ export const WsCurrentUser = createParamDecorator(
 );
 
 export const WsOptionalUser = createParamDecorator(
-  (data: unknown, context: ExecutionContext): FirebasePayload => {
+  (data: unknown, context: ExecutionContext): User | undefined => {
     const client: Socket = context.switchToWs().getClient();
     const user = client.data.user;
     

@@ -25,7 +25,10 @@ export class QuizzesService {
   }
 
   async findOne(id: string): Promise<Quiz | null> {
-    return await this.quizzesRepository.findOneBy({ id: id });
+    return await this.quizzesRepository.findOne({
+      where: { id: id },
+      relations: ['questions']
+    });
   }
 
   async create(

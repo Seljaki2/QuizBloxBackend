@@ -9,12 +9,11 @@ import {
   WebSocketServer,
   WsException,
 } from '@nestjs/websockets';
-import { type Server, type Socket } from 'socket.io';
+import { Socket, type Server } from 'socket.io';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { UsersService } from 'src/users/users.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { WsCurrentUser, WsOptionalUser } from 'src/auth/ws-get-user.decorator';
-import type { FirebasePayload } from 'src/auth/get-user.decorator';
 import { QuizzesService } from 'src/quizzes/quizzes.service';
 import { User } from 'src/users/entities/user.entity';
 import { Result } from 'src/results/entities/result.entity';
@@ -22,7 +21,7 @@ import Hashids from 'hashids'
 import { v4 as uuidv4 } from 'uuid' 
 import { QuestionsService } from 'src/questions/questions.service';
 import { Quiz } from 'src/quizzes/entities/quiz.entity';
-import { JoinSessionDto } from './dto/join-session.dto';
+import { ClientType, JoinSessionDto } from './dto/join-session.dto';
 import { Question } from 'src/questions/entities/question.entity';
 import { AnwserQuestionDto } from './dto/anwser-question.dto';
 import dayjs from 'dayjs';
@@ -131,16 +130,17 @@ export class SessionsGateway {
   async createSession(
     @ConnectedSocket() client: Socket,
     @MessageBody() createSessionDto: CreateSessionDto,
-    @WsCurrentUser() user: FirebasePayload,
+    @WsCurrentUser() user: User,
   ) {
     const { quizId } = createSessionDto;
-    const host = await this.usersService.getById(user.uid);
+    const host = await this.usersService.getById(user.id);
     const quiz = await this.quizzesService.findOne(quizId);
 
     if (!quiz || !host) throw new WsException('User or quizz doesnt exist');
 
     const id = uuidv4()
-    const joinCode = this.hids.encode(id)
+    const hexId = id.replace(/-/g, '')
+    const joinCode = this.hids.encodeHex(hexId).substring(0, 6).toUpperCase();
 
     const session = await this.sessionsService.create({
       id,
@@ -151,7 +151,6 @@ export class SessionsGateway {
 
     await client.join(joinCode); 
     client.data.joinCode = joinCode
-    client.data.session
 
     const state: QuizState = {
       host: host,
@@ -169,28 +168,44 @@ export class SessionsGateway {
 
     client.send({
       session,
-      joinCode
+      joinCode,
+      quiz,
     })
   }
 
   @SubscribeMessage('join-session')
   async joinSession(
     @ConnectedSocket() client: Socket,
-    @MessageBody() { joinCode }: JoinSessionDto,
+    @MessageBody() { joinCode, clientType }: JoinSessionDto,
+    @WsOptionalUser() user?: User
   ) {
     const state = this.getState(joinCode)
-
+    
     if(!state) 
       return { joined: false }
 
     client.join(joinCode)
+
+    if(clientType === ClientType.PLAYER) {
+      client.send({
+        players: state.players,
+        quiz: state.quiz
+      })
+
+      const u = user ? client.data.user as User : { guestUsername: client.data.guestUsername }
+      state.players.push(u)
+
+      this.server.to(joinCode).emit('player-joined', {
+        user: u
+      })
+    }
   }
 
   @SubscribeMessage('anwser-question')
   anwserQuestion(
     @ConnectedSocket() client: Socket,
     @MessageBody() {}: AnwserQuestionDto,
-    @WsOptionalUser() user?: FirebasePayload
+    @WsOptionalUser() user?: User
   ) {
     
   }
@@ -204,7 +219,7 @@ export class SessionsGateway {
   @SubscribeMessage('start-quiz')
   startQuiz(
     @ConnectedSocket() client: Socket,
-    @WsCurrentUser() user: FirebasePayload,
+    @WsCurrentUser() user: User,
   ) {
     //this.server.
     const joinCode = client.data.joinCode as string
