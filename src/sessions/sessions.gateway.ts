@@ -32,6 +32,7 @@ type GuestUser = {
 export type QuizState = {
   host: User;
   //results: Result[][],
+<<<<<<< Updated upstream
   quiz: Quiz;
   currentQuestion: number;
   sessionId: string;
@@ -39,6 +40,15 @@ export type QuizState = {
   status: 'LOBBY' | 'STARTED';
   anwserDueTime: Date;
 };
+=======
+  quiz: Quiz
+  currentQuestion: number,
+  sessionId: string,
+  joinCode: string
+  status: "LOBBY" | "STARTED",
+  players: Array<User | GuestUser>
+}
+>>>>>>> Stashed changes
 
 @WebSocketGateway({
   cors: true,
@@ -79,9 +89,16 @@ export class SessionsGateway {
   }
 
   async handleConnection(client: Socket) {
-    console.log(client.handshake.headers);
-    if (client.handshake.headers.is_guest) {
+    //console.log(client.handshake.headers);
+    console.log("new CONNECTED")
+    const username = client.handshake.auth.guestUsername as undefined | string
+    const gid = client.handshake.auth.guestId as undefined | string
+    if (username) {
+      console.log("GUEST CONNECTED ", username)
       client.data.isGuest = true;
+      client.data.guestUsername = username
+      client.data.guestId = gid
+      return true
     } else {
       // auth client
       try {
