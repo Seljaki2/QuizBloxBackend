@@ -27,7 +27,8 @@ import { AnwserQuestionDto } from './dto/anwser-question.dto';
 import dayjs from 'dayjs';
 
 type GuestUser = {
-  guestUsername: string
+  guestUsername: string,
+  guestId: string
 }
 
 export type QuizState = {
@@ -192,11 +193,19 @@ export class SessionsGateway {
         quiz: state.quiz
       })
 
-      const u = user ? client.data.user as User : { guestUsername: client.data.guestUsername }
-      state.players.push(u)
+      const u = user ? client.data.user as User : { 
+        guestUsername: client.data.guestUsername,
+        guestId: client.data.guestId
+      } as GuestUser
+      const newPlayers = [...state.players, u]
+      this.updateState(joinCode, {
+        players: newPlayers
+      })
+      console.log("USER JOINED SESSION ", u)
 
-      this.server.to(joinCode).emit('player-joined', {
-        user: u
+      client.to(joinCode).emit('player-joined', {
+        user: u,
+        users: newPlayers
       })
     }
   }
@@ -228,7 +237,6 @@ export class SessionsGateway {
 
     this.updateState(joinCode, {
       status: "STARTED",
-      currentQuestion: 0,
     })
 
     this.sendNextQuestion(joinCode);
@@ -239,15 +247,31 @@ export class SessionsGateway {
     if (!state) return;
     const newQuestionIndex = state.currentQuestion + 1;
 
-    if (newQuestionIndex >= state.quiz.questions.length) return;
+    if (newQuestionIndex >= state.quiz.questions.length) {
+      this.onQuizEnded(joinCode, state)
+      return
+    };
 
     this.updateState(joinCode, {
       currentQuestion: newQuestionIndex,
       anwserDueTime: dayjs().add(30, 'seconds').toDate(),
     });
 
-    this.server.to(joinCode).emit('quiz-started', {
+    this.server.to(joinCode).emit('next-question', {
       question: state.quiz.questions[newQuestionIndex],
     });
+  }
+
+  onQuizEnded(joinCode: string, state: QuizState) {
+    this.server.to(joinCode).emit('quiz-ended', {
+      results: [],
+    })
+
+    this.server.to(joinCode).disconnectSockets()
+    this.clearState(joinCode)
+  }
+
+  onQuestionTimeLimit(joinCode: string) {
+
   }
 }
