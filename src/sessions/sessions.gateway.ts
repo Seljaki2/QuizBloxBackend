@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { SessionsService } from './sessions.service';
-import { UsePipes, ValidationPipe } from '@nestjs/common';
+import { NotFoundException, UsePipes, ValidationPipe } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -13,42 +13,35 @@ import { type Server, type Socket } from 'socket.io';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { UsersService } from 'src/users/users.service';
 import { CreateSessionDto } from './dto/create-session.dto';
-import { WsCurrentUser } from 'src/auth/ws-get-user.decorator';
+import { WsCurrentUser, WsOptionalUser } from 'src/auth/ws-get-user.decorator';
 import type { FirebasePayload } from 'src/auth/get-user.decorator';
 import { QuizzesService } from 'src/quizzes/quizzes.service';
 import { User } from 'src/users/entities/user.entity';
-import Hashids from 'hashids';
-import { v4 as uuidv4 } from 'uuid';
+import { Result } from 'src/results/entities/result.entity';
+import Hashids from 'hashids'
+import { v4 as uuidv4 } from 'uuid' 
 import { QuestionsService } from 'src/questions/questions.service';
 import { Quiz } from 'src/quizzes/entities/quiz.entity';
 import { JoinSessionDto } from './dto/join-session.dto';
-import dayjs from 'dayjs';
+import { Question } from 'src/questions/entities/question.entity';
 import { AnwserQuestionDto } from './dto/anwser-question.dto';
+import dayjs from 'dayjs';
 
 type GuestUser = {
   guestUsername: string
 }
 
 export type QuizState = {
-  host: User;
+  host: User,
   //results: Result[][],
-<<<<<<< Updated upstream
-  quiz: Quiz;
-  currentQuestion: number;
-  sessionId: string;
-  joinCode: string;
-  status: 'LOBBY' | 'STARTED';
-  anwserDueTime: Date;
-};
-=======
   quiz: Quiz
   currentQuestion: number,
   sessionId: string,
   joinCode: string
   status: "LOBBY" | "STARTED",
-  players: Array<User | GuestUser>
+  players: Array<User | GuestUser>,
+  anwserDueTime: Date;
 }
->>>>>>> Stashed changes
 
 @WebSocketGateway({
   cors: true,
@@ -60,32 +53,32 @@ export class SessionsGateway {
     private readonly usersService: UsersService,
     private readonly sessionsService: SessionsService,
     private readonly quizzesService: QuizzesService,
-    private readonly questionsService: QuestionsService,
+    private readonly questionsService: QuestionsService
   ) {}
 
   @WebSocketServer()
   server: Server;
-  states = new Map<string, QuizState>();
-  hids = new Hashids(new Date().toISOString());
+  states = new Map<string, QuizState>()
+  hids = new Hashids((new Date()).toISOString())
 
   getState(joinCode: string) {
-    return this.states.get(joinCode);
+    return this.states.get(joinCode)
   }
 
   clearState(joinCode: string) {
-    this.states.delete(joinCode);
+    this.states.delete(joinCode)
   }
 
   setState(joinCode: string, state: QuizState) {
-    this.states.set(joinCode, state);
+    this.states.set(joinCode, state)
   }
 
   updateState(joinCode: string, state: Partial<QuizState>) {
-    const s = this.getState(joinCode);
+    const s = this.getState(joinCode)
     this.states.set(joinCode, {
       ...s!,
-      ...state,
-    });
+      ...state
+    })
   }
 
   async handleConnection(client: Socket) {
@@ -146,8 +139,8 @@ export class SessionsGateway {
 
     if (!quiz || !host) throw new WsException('User or quizz doesnt exist');
 
-    const id = uuidv4();
-    const joinCode = this.hids.encode(id);
+    const id = uuidv4()
+    const joinCode = this.hids.encode(id)
 
     const session = await this.sessionsService.create({
       id,
@@ -156,15 +149,9 @@ export class SessionsGateway {
       //joinCode
     });
 
-<<<<<<< Updated upstream
-    await client.join(joinCode);
-    client.data.joinCode = joinCode;
-    client.data.sessionId = id;
-=======
     await client.join(joinCode); 
     client.data.joinCode = joinCode
     client.data.session
->>>>>>> Stashed changes
 
     const state: QuizState = {
       host: host,
@@ -172,62 +159,62 @@ export class SessionsGateway {
       joinCode: joinCode,
       currentQuestion: -1,
       quiz,
-<<<<<<< Updated upstream
-      status: 'LOBBY',
-      anwserDueTime: new Date(),
-    };
-    this.setState(joinCode, state);
-=======
       status: "LOBBY",
-      players: []
+      players: [],
+      anwserDueTime: new Date()
     }
     this.setState(joinCode, state)
->>>>>>> Stashed changes
 
-    console.log('generated state ', state);
+    console.log("generated state ", state)
 
     client.send({
       session,
+      joinCode
     })
   }
 
   @SubscribeMessage('join-session')
-  joinSession(
+  async joinSession(
     @ConnectedSocket() client: Socket,
     @MessageBody() { joinCode }: JoinSessionDto,
   ) {
-    const state = this.getState(joinCode);
+    const state = this.getState(joinCode)
 
-    if (!state) return { joined: false };
+    if(!state) 
+      return { joined: false }
 
-    client.join(joinCode);
+    client.join(joinCode)
   }
 
   @SubscribeMessage('anwser-question')
   anwserQuestion(
     @ConnectedSocket() client: Socket,
     @MessageBody() {}: AnwserQuestionDto,
-  ) {}
+    @WsOptionalUser() user?: FirebasePayload
+  ) {
+    
+  }
 
   @SubscribeMessage('next-question')
   nextQuestion(@ConnectedSocket() client: Socket) {
     const joinCode = client.data.joinCode as string;
     this.sendNextQuestion(joinCode);
   }
-
+  
   @SubscribeMessage('start-quiz')
   startQuiz(
     @ConnectedSocket() client: Socket,
     @WsCurrentUser() user: FirebasePayload,
   ) {
     //this.server.
-    const joinCode = client.data.joinCode as string;
-    const state = this.getState(joinCode);
-    if (!state || state.status !== 'LOBBY') return;
+    const joinCode = client.data.joinCode as string
+    const state = this.getState(joinCode)
+    if(!state || state.status !== 'LOBBY') return
 
     this.updateState(joinCode, {
-      status: 'STARTED',
-    });
+      status: "STARTED",
+      currentQuestion: 0,
+    })
 
     this.sendNextQuestion(joinCode);
   }
