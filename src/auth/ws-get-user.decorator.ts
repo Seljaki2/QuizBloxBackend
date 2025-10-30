@@ -12,3 +12,12 @@ export const WsCurrentUser = createParamDecorator(
     return user;
   },
 );
+
+export const WsOptionalUser = createParamDecorator(
+  (data: unknown, context: ExecutionContext): FirebasePayload => {
+    const client: Socket = context.switchToWs().getClient();
+    const user = client.data.user;
+    
+    return user;
+  },
+);

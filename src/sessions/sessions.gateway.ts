@@ -25,6 +25,10 @@ import { JoinSessionDto } from './dto/join-session.dto';
 import dayjs from 'dayjs';
 import { AnwserQuestionDto } from './dto/anwser-question.dto';
 
+type GuestUser = {
+  guestUsername: string
+}
+
 export type QuizState = {
   host: User;
   //results: Result[][],
@@ -84,28 +88,33 @@ export class SessionsGateway {
         const token =
           (client.handshake.auth?.token as string | undefined) ||
           client.handshake.headers?.authorization?.split(' ')[1];
-        if (!token) return false; //throw new WsException('No auth token');
+        if (!token) return this.dissconectSocket(client); //throw new WsException('No auth token');
         console.log('TOKEN ', token);
         const decodedToken = await this.firebaseService
           .getAuth()
           .verifyIdToken(token);
         const user = await this.usersService.getById(decodedToken.uid);
         console.log(user);
-        if (!user) return false; //throw new WsException("User doesn't exist");
+        if (!user) return this.dissconectSocket(client); //throw new WsException("User doesn't exist");
         client.data.user = user;
+        return true
       } catch (error) {
         console.error('Invalid Firebase token:', error);
         throw new WsException('Authentication failed');
       }
     }
+  }
 
-    return true;
+  dissconectSocket(socket: Socket) {
+    console.log("DISSCONECTING SOCKET")
+    socket.disconnect(true)
+    return false
   }
 
   @SubscribeMessage('message')
-  handleMessage(client: Socket, payload: any): string {
-    console.log('TEST');
-    return 'Hello world!';
+  handleMessage(client: Socket, payload: any) {
+    console.log('TEST', payload);
+    client.send('Hello world!');
   }
 
   @SubscribeMessage('create-session')
@@ -130,9 +139,15 @@ export class SessionsGateway {
       //joinCode
     });
 
+<<<<<<< Updated upstream
     await client.join(joinCode);
     client.data.joinCode = joinCode;
     client.data.sessionId = id;
+=======
+    await client.join(joinCode); 
+    client.data.joinCode = joinCode
+    client.data.session
+>>>>>>> Stashed changes
 
     const state: QuizState = {
       host: host,
@@ -140,16 +155,23 @@ export class SessionsGateway {
       joinCode: joinCode,
       currentQuestion: -1,
       quiz,
+<<<<<<< Updated upstream
       status: 'LOBBY',
       anwserDueTime: new Date(),
     };
     this.setState(joinCode, state);
+=======
+      status: "LOBBY",
+      players: []
+    }
+    this.setState(joinCode, state)
+>>>>>>> Stashed changes
 
     console.log('generated state ', state);
 
-    return {
+    client.send({
       session,
-    };
+    })
   }
 
   @SubscribeMessage('join-session')
