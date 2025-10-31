@@ -33,7 +33,9 @@ type GuestUser = {
 
 type QuizAnwser = {
   user: User | GuestUser;
-  anwser: string;
+  questionId: string;
+  anwserId?: string;
+  userEntry?: string;
 };
 
 export type QuizState = {
@@ -233,7 +235,7 @@ export class SessionsGateway {
   @SubscribeMessage('anwser-question')
   anwserQuestion(
     @ConnectedSocket() client: Socket,
-    @MessageBody() { anwser }: AnwserQuestionDto,
+    @MessageBody() { questionId, anwserId, userEntry }: AnwserQuestionDto,
     @WsOptionalUser() user: User | GuestUser,
   ) {
     console.log('ANWSER QUESTIUONB');
@@ -252,7 +254,9 @@ export class SessionsGateway {
 
     const quizAnwser: QuizAnwser = {
       user,
-      anwser,
+      questionId,
+      anwserId,
+      userEntry,
     };
 
     state.results.at(-1)!.push(quizAnwser);
