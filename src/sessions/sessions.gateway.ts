@@ -340,7 +340,7 @@ export class SessionsGateway {
 
   onQuizEnded(joinCode: string, state: QuizState) {
     this.server.to(joinCode).emit('quiz-ended', {
-      results: [],
+      results: state.results,
     })
 
     this.server.to(joinCode).disconnectSockets()
