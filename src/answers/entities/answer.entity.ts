@@ -24,6 +24,6 @@ export class Answer extends Base {
   @OneToMany(() => Result, (result) => result.answer, { nullable: true })
   results: Result[];
 
-  @OneToOne(() => Media, { nullable: true })
+  @ManyToOne(() => Media, { nullable: true, eager: true })
   media?: Media;
 }
