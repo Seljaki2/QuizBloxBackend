@@ -18,5 +18,6 @@ import { AnswersModule } from '../answers/answers.module';
   ],
   providers: [ResultsService],
   controllers: [ResultsController],
+  exports: [ResultsService],
 })
 export class ResultsModule {}
