@@ -6,7 +6,7 @@ import { Media } from 'src/media/entities/media.entity';
 
 @Entity()
 export class Answer extends Base {
-  @Column({ nullable: false })
+  @Column({ nullable: true })
   text: string;
 
   @Column({ type: 'int', default: 0 })

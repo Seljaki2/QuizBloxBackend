@@ -11,7 +11,7 @@ export enum QuestionType {
 
 @Entity()
 export class Question extends Base {
-  @Column({ nullable: false })
+  @Column({ nullable: true })
   text: string;
 
   @OneToMany(() => Answer, (answer) => answer.question, {
