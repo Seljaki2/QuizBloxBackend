@@ -24,7 +24,7 @@ export class Question extends Base {
   @OneToOne(() => Media, { nullable: true })
   media?: Media;
 
-  @Column({ nullable: true })
+  @Column({ default: 20 })
   customTime: number;
 
   @Column({ type: 'enum', enum: QuestionType })

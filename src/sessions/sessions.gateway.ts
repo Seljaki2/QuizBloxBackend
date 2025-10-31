@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { SessionsService } from './sessions.service';
-import { NotFoundException, UsePipes, ValidationPipe } from '@nestjs/common';
+import { UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
 import {
+  BaseWsExceptionFilter,
   ConnectedSocket,
   MessageBody,
   SubscribeMessage,
@@ -16,24 +17,28 @@ import { CreateSessionDto } from './dto/create-session.dto';
 import { WsCurrentUser, WsOptionalUser } from 'src/auth/ws-get-user.decorator';
 import { QuizzesService } from 'src/quizzes/quizzes.service';
 import { User } from 'src/users/entities/user.entity';
-import { Result } from 'src/results/entities/result.entity';
 import Hashids from 'hashids'
 import { v4 as uuidv4 } from 'uuid' 
 import { QuestionsService } from 'src/questions/questions.service';
 import { Quiz } from 'src/quizzes/entities/quiz.entity';
 import { ClientType, JoinSessionDto } from './dto/join-session.dto';
-import { Question } from 'src/questions/entities/question.entity';
 import { AnwserQuestionDto } from './dto/anwser-question.dto';
 import dayjs from 'dayjs';
+import { KickPlayerDto } from './dto/kick-player.dto';
 
 type GuestUser = {
   guestUsername: string,
   guestId: string
 }
 
+type QuizAnwser = {
+  user: User | GuestUser,
+  anwser: string
+}
+
 export type QuizState = {
   host: User,
-  //results: Result[][],
+  results: QuizAnwser[][],
   quiz: Quiz
   currentQuestion: number,
   sessionId: string,
@@ -46,6 +51,7 @@ export type QuizState = {
 @WebSocketGateway({
   cors: true,
 })
+@UseFilters(new BaseWsExceptionFilter())
 @UsePipes(new ValidationPipe())
 export class SessionsGateway {
   constructor(
@@ -86,11 +92,15 @@ export class SessionsGateway {
     console.log("new CONNECTED")
     const username = client.handshake.auth.guestUsername as undefined | string
     const gid = client.handshake.auth.guestId as undefined | string
-    if (username) {
+    if (username && gid) {
       console.log("GUEST CONNECTED ", username)
       client.data.isGuest = true;
-      client.data.guestUsername = username
-      client.data.guestId = gid
+      const guestUser: GuestUser = {
+        guestId: gid,
+        guestUsername: username
+      }
+      client.data.guestUser = guestUser
+      client.emit('ready')
       return true
     } else {
       // auth client
@@ -99,7 +109,7 @@ export class SessionsGateway {
           (client.handshake.auth?.token as string | undefined) ||
           client.handshake.headers?.authorization?.split(' ')[1];
         if (!token) return this.dissconectSocket(client); //throw new WsException('No auth token');
-        console.log('TOKEN ', token);
+        //console.log('TOKEN ', token);
         const decodedToken = await this.firebaseService
           .getAuth()
           .verifyIdToken(token);
@@ -107,6 +117,8 @@ export class SessionsGateway {
         console.log(user);
         if (!user) return this.dissconectSocket(client); //throw new WsException("User doesn't exist");
         client.data.user = user;
+        console.log("User connected", user)
+        client.emit('ready')
         return true
       } catch (error) {
         console.error('Invalid Firebase token:', error);
@@ -115,16 +127,21 @@ export class SessionsGateway {
     }
   }
 
+  handleDisconnect(client: Socket) {
+    const user = client.data.user ? client.data.user as User | undefined : client.data.guestUser as GuestUser | undefined ;
+    const joinCode = client.data.joinCode as string | undefined
+    if(joinCode && user){
+      this.onUserDissconected(client.data.joinCode as string, user)
+      const state = this.getState(joinCode)
+      if(state && 'id' in user && user.id === state.host.id)
+        this.onQuizEnded(joinCode, state)
+    }
+  }
+
   dissconectSocket(socket: Socket) {
     console.log("DISSCONECTING SOCKET")
     socket.disconnect(true)
     return false
-  }
-
-  @SubscribeMessage('message')
-  handleMessage(client: Socket, payload: any) {
-    console.log('TEST', payload);
-    client.send('Hello world!');
   }
 
   @SubscribeMessage('create-session')
@@ -161,13 +178,14 @@ export class SessionsGateway {
       quiz,
       status: "LOBBY",
       players: [],
-      anwserDueTime: new Date()
+      anwserDueTime: new Date(),
+      results: []
     }
     this.setState(joinCode, state)
 
     console.log("generated state ", state)
 
-    client.send({
+    return ({
       session,
       joinCode,
       quiz,
@@ -178,25 +196,21 @@ export class SessionsGateway {
   async joinSession(
     @ConnectedSocket() client: Socket,
     @MessageBody() { joinCode, clientType }: JoinSessionDto,
-    @WsOptionalUser() user?: User
+    @WsOptionalUser() user: User | GuestUser
   ) {
     const state = this.getState(joinCode)
     
-    if(!state) 
+    if(!state || !user) 
       return { joined: false }
 
-    client.join(joinCode)
+    await client.join(joinCode)
+    const id = 'id' in user ? user.id : user.guestId
+    await client.join(id)
+    client.data.joinCode = joinCode
+    client.data.clientType = clientType
 
     if(clientType === ClientType.PLAYER) {
-      client.send({
-        players: state.players,
-        quiz: state.quiz
-      })
-
-      const u = user ? client.data.user as User : { 
-        guestUsername: client.data.guestUsername,
-        guestId: client.data.guestId
-      } as GuestUser
+      const u = user
       const newPlayers = [...state.players, u]
       this.updateState(joinCode, {
         players: newPlayers
@@ -207,16 +221,71 @@ export class SessionsGateway {
         user: u,
         users: newPlayers
       })
+
+      return ({
+        players: newPlayers,
+        quiz: state.quiz
+      })
     }
   }
 
   @SubscribeMessage('anwser-question')
   anwserQuestion(
     @ConnectedSocket() client: Socket,
-    @MessageBody() {}: AnwserQuestionDto,
-    @WsOptionalUser() user?: User
+    @MessageBody() { anwser }: AnwserQuestionDto,
+    @WsOptionalUser() user: User | GuestUser
   ) {
-    
+    console.log("ANWSER QUESTIUONB")
+    const joinCode = client.data.joinCode as string | undefined
+    if(!joinCode) return false
+    const state = this.getState(joinCode)
+    if(!state) return false
+    if(state.anwserDueTime < new Date()) return false
+    console.log("vse je validno")
+    const id = 'id' in user ? user.id : user.guestId
+    const anwsered = !!state.results.at(-1)!.find(({user: u}) => 'id' in u ? u.id === id : u.guestId === id)
+    console.log("anwsered ", anwsered)
+    if(!anwsered) return false
+
+    const quizAnwser: QuizAnwser = {
+      user,
+      anwser
+    }
+
+    state.results.at(-1)!.push(quizAnwser)
+
+    this.server.to(joinCode).emit("player-anwsered", {
+      user,
+      quizAnwser
+    })
+
+    return true
+  }
+
+  @SubscribeMessage('kick-player')
+  kickPlayer(
+    @ConnectedSocket() client: Socket,
+    @WsCurrentUser() user: User,
+    @MessageBody() { playerId }: KickPlayerDto
+  ) {
+    const joinCode = client.data.joinCode as string | undefined
+    if(!joinCode) return
+    const state = this.getState(joinCode)
+    if(!state) return
+    if(user.id === state.host.id) {
+      this.onUserDissconected(joinCode, user)
+      this.server.to(playerId).disconnectSockets()
+    }
+  }
+
+  @SubscribeMessage('close-session')
+  closeSession(
+    @ConnectedSocket() client: Socket,
+    //@WsCurrentUser() user: User,
+   // @MessageBody() { sessionId }: CloseSessionDto
+  ) {
+    //this.sessionsService.delete(sessionId)
+    this.onQuizEnded(client.data.joinCode, this.getState(client.data.joinCode)!)
   }
 
   @SubscribeMessage('next-question')
@@ -227,8 +296,7 @@ export class SessionsGateway {
   
   @SubscribeMessage('start-quiz')
   startQuiz(
-    @ConnectedSocket() client: Socket,
-    @WsCurrentUser() user: User,
+    @ConnectedSocket() client: Socket
   ) {
     //this.server.
     const joinCode = client.data.joinCode as string
@@ -242,7 +310,7 @@ export class SessionsGateway {
     this.sendNextQuestion(joinCode);
   }
 
-  sendNextQuestion(joinCode: string) {
+  async sendNextQuestion(joinCode: string) {
     const state = this.getState(joinCode);
     if (!state) return;
     const newQuestionIndex = state.currentQuestion + 1;
@@ -251,14 +319,22 @@ export class SessionsGateway {
       this.onQuizEnded(joinCode, state)
       return
     };
-
+    const question = state.quiz.questions[newQuestionIndex]
+    state.results.push([])
+    const dueTime = dayjs().add(question.customTime, 'seconds').toDate()
     this.updateState(joinCode, {
       currentQuestion: newQuestionIndex,
-      anwserDueTime: dayjs().add(30, 'seconds').toDate(),
+      anwserDueTime: dueTime,
+      results: state.results
     });
 
+    const sockets = await this.server.in(joinCode).fetchSockets()
+    console.log("num of sockets in ", joinCode, sockets.length, sockets)
+
     this.server.to(joinCode).emit('next-question', {
-      question: state.quiz.questions[newQuestionIndex],
+      question,
+      index: newQuestionIndex,
+      dueTime
     });
   }
 
@@ -269,9 +345,19 @@ export class SessionsGateway {
 
     this.server.to(joinCode).disconnectSockets()
     this.clearState(joinCode)
+    console.log(state)
   }
 
-  onQuestionTimeLimit(joinCode: string) {
+  onUserDissconected(joinCode: string, user: User | GuestUser) {
+    const state = this.getState(joinCode)!
+    const p = state.players.filter(u => u != user)
+    this.updateState(joinCode, {
+      players: p
+    })
 
+    this.server.to(joinCode).emit('player-disconnected', {
+      user,
+      users: p
+    })
   }
 }
