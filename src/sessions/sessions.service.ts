@@ -12,4 +12,8 @@ export class SessionsService {
   create(s: Partial<Session>) {
     return this.session.save(this.session.create(s));
   }
+
+  delete(id: string) {
+    return this.session.delete(id)
+  }
 }
