@@ -14,6 +14,6 @@ export class SessionsService {
   }
 
   delete(id: string) {
-    return this.session.delete(id)
+    return this.session.delete(id);
   }
 }

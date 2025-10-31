@@ -7,9 +7,8 @@ export const WsCurrentUser = createParamDecorator(
   (data: unknown, context: ExecutionContext): User => {
     const client: Socket = context.switchToWs().getClient();
     const user = client.data.user as User;
-    if (!user) 
-      throw new Error('User not found on WebSocket context.');
-    
+    if (!user) throw new Error('User not found on WebSocket context.');
+
     return user;
   },
 );
@@ -17,11 +16,13 @@ export const WsCurrentUser = createParamDecorator(
 export const WsOptionalUser = createParamDecorator(
   (data: unknown, context: ExecutionContext): User | undefined => {
     const client: Socket = context.switchToWs().getClient();
-    const user = client.data.user ? client.data.user as User : client.data.guestUser as User;
-    console.log(user)
-    if (!user) 
+    const user = client.data.user
+      ? (client.data.user as User)
+      : (client.data.guestUser as User);
+    console.log(user);
+    if (!user)
       throw new Error('User or guest user not found on WebSocket context.');
-    
+
     return user;
   },
 );

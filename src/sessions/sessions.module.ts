@@ -14,7 +14,7 @@ import { QuestionsModule } from 'src/questions/questions.module';
     FirebaseModule,
     UsersModule,
     QuizzesModule,
-    QuestionsModule
+    QuestionsModule,
   ],
   providers: [SessionsGateway, SessionsService],
 })

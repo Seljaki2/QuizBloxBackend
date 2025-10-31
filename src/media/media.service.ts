@@ -2,11 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Media } from './entities/media.entity';
 import { Repository } from 'typeorm';
-import { unlink } from 'fs';
+import { promises as fsPromises, unlink } from 'fs';
 import path from 'path';
 import { UPLOAD_DESTINATION } from 'src/media/upload-destination';
 import { v4 as uuidv4 } from 'uuid';
-import { promises as fsPromises } from 'fs';
 
 @Injectable()
 export class MediaService {
