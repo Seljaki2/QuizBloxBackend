@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { CreateResultDto } from './dto/create-result.dto';
 import { ResultsService } from './results.service';
 import { type FirebasePayload, GetPayload } from '../auth/get-user.decorator';
+import { CreateResultDto } from './dto/create-result.dto';
 
 @Controller('results')
 export class ResultsController {
@@ -13,10 +13,7 @@ export class ResultsController {
   }
 
   @Post()
-  async create(
-    @Body() createResultDto: CreateResultDto,
-    @GetPayload() payload: FirebasePayload,
-  ) {
-    return await this.resultsService.create(createResultDto, payload);
+  async create(@Body() createResultDto: CreateResultDto) {
+    return await this.resultsService.create(createResultDto);
   }
 }

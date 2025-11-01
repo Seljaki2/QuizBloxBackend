@@ -32,14 +32,11 @@ export class ResultsService {
     return await this.resultsRepository.find({ where: { user: user } });
   }
 
-  async create(createResultDto: CreateResultDto, payload?: FirebasePayload) {
+  async create(createResultDto: CreateResultDto) {
     let user: User | null = null;
 
-    if (payload?.user_id !== undefined) {
-      user = await this.usersService.getById(payload.user_id);
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
+    if (createResultDto.userId) {
+      user = await this.usersService.getById(createResultDto.userId);
     }
 
     const quiz = await this.quizzesService.findOne(createResultDto.quizId);
