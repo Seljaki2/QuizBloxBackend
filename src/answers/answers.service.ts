@@ -54,7 +54,7 @@ export class AnswersService {
     media?: Media,
   ): Promise<UpdateResult> {
     const answer = await this.findOne(id);
-    if (!answer) throw new NotFoundException("Anwser doesn't exist!");
+    if (!answer) throw new NotFoundException("Answer doesn't exist!");
     if (media && answer.media)
       await this.mediaService.deleteMedia(answer.media.id);
 
@@ -84,7 +84,7 @@ export class AnswersService {
 
   async delete(id: string): Promise<DeleteResult> {
     const answer = await this.findOne(id);
-    if (!answer) throw new NotFoundException("Anwser doesn't exist!");
+    if (!answer) throw new NotFoundException("Answer doesn't exist!");
     if (answer.media) await this.mediaService.deleteMedia(answer.media.id);
     return await this.answersRepository.delete({ id: id });
   }

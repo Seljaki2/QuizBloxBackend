@@ -45,4 +45,6 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  totalScore: number = 0;
 }

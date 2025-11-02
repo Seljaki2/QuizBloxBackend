@@ -8,6 +8,7 @@ import { SessionsService } from './sessions.service';
 import { QuizzesModule } from 'src/quizzes/quizzes.module';
 import { QuestionsModule } from 'src/questions/questions.module';
 import { ResultsModule } from '../results/results.module';
+import { AnswersModule } from '../answers/answers.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ResultsModule } from '../results/results.module';
     QuizzesModule,
     QuestionsModule,
     ResultsModule,
+    AnswersModule,
   ],
   providers: [SessionsGateway, SessionsService],
 })

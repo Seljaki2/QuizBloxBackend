@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { SessionsService } from './sessions.service';
 import { UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
 import {
@@ -22,32 +21,38 @@ import { v4 as uuidv4 } from 'uuid';
 import { QuestionsService } from 'src/questions/questions.service';
 import { Quiz } from 'src/quizzes/entities/quiz.entity';
 import { ClientType, JoinSessionDto } from './dto/join-session.dto';
-import { AnwserQuestionDto } from './dto/anwser-question.dto';
+import { AnswerQuestionDto } from './dto/answer-question.dto';
 import dayjs from 'dayjs';
 import { KickPlayerDto } from './dto/kick-player.dto';
+import { ResultsService } from '../results/results.service';
+import { AnswersService } from '../answers/answers.service';
 
 type GuestUser = {
   guestUsername: string;
   guestId: string;
+  totalScore: number;
 };
 
-type QuizAnwser = {
+type QuizAnswer = {
   user: User | GuestUser;
   questionId: string;
-  anwserId?: string;
+  answerId?: string;
   userEntry?: string;
+  score: number;
 };
 
 export type QuizState = {
   host: User;
-  results: QuizAnwser[][];
+  results: QuizAnswer[][];
   quiz: Quiz;
   currentQuestion: number;
   sessionId: string;
   joinCode: string;
   status: 'LOBBY' | 'STARTED';
   players: Array<User | GuestUser>;
-  anwserDueTime: Date;
+  receivedAnswers: number;
+  answerDueTime: Date;
+  currentQuestionStartTime: number;
 };
 
 @WebSocketGateway({
@@ -62,6 +67,8 @@ export class SessionsGateway {
     private readonly sessionsService: SessionsService,
     private readonly quizzesService: QuizzesService,
     private readonly questionsService: QuestionsService,
+    private readonly resultsService: ResultsService,
+    private readonly answersService: AnswersService,
   ) {}
 
   @WebSocketServer()
@@ -91,15 +98,15 @@ export class SessionsGateway {
 
   async handleConnection(client: Socket) {
     //console.log(client.handshake.headers);
-    console.log('new CONNECTED');
+    //console.log('new CONNECTED');
     const username = client.handshake.auth.guestUsername as undefined | string;
     const gid = client.handshake.auth.guestId as undefined | string;
     if (username && gid) {
-      console.log('GUEST CONNECTED ', username);
       client.data.isGuest = true;
       const guestUser: GuestUser = {
         guestId: gid,
         guestUsername: username,
+        totalScore: 0,
       };
       client.data.guestUser = guestUser;
       client.emit('ready');
@@ -116,10 +123,10 @@ export class SessionsGateway {
           .getAuth()
           .verifyIdToken(token);
         const user = await this.usersService.getById(decodedToken.uid);
-        console.log(user);
+        //console.log(user);
         if (!user) return this.dissconectSocket(client); //throw new WsException("User doesn't exist");
         client.data.user = user;
-        console.log('User connected', user);
+        //console.log('User connected', user);
         client.emit('ready');
         return true;
       } catch (error) {
@@ -143,7 +150,7 @@ export class SessionsGateway {
   }
 
   dissconectSocket(socket: Socket) {
-    console.log('DISSCONECTING SOCKET');
+    //console.log('DISSCONECTING SOCKET');
     socket.disconnect(true);
     return false;
   }
@@ -182,12 +189,15 @@ export class SessionsGateway {
       quiz,
       status: 'LOBBY',
       players: [],
-      anwserDueTime: new Date(),
+      receivedAnswers: 0,
+      answerDueTime: new Date(),
+      currentQuestionStartTime: 0,
       results: [],
     };
     this.setState(joinCode, state);
 
-    console.log('generated state ', state);
+    //
+    // console.log('generated state ', state);
 
     return {
       session,
@@ -204,7 +214,7 @@ export class SessionsGateway {
   ) {
     const state = this.getState(joinCode);
 
-    if (!state || !user) return { joined: false };
+    if (!state || !user || state.status == 'STARTED') return { joined: false };
 
     await client.join(joinCode);
     const id = 'id' in user ? user.id : user.guestId;
@@ -218,7 +228,7 @@ export class SessionsGateway {
       this.updateState(joinCode, {
         players: newPlayers,
       });
-      console.log('USER JOINED SESSION ', u);
+      //console.log('USER JOINED SESSION ', u);
 
       client.to(joinCode).emit('player-joined', {
         user: u,
@@ -232,41 +242,111 @@ export class SessionsGateway {
     }
   }
 
-  @SubscribeMessage('anwser-question')
-  anwserQuestion(
+  @SubscribeMessage('answer-question')
+  async answerQuestion(
     @ConnectedSocket() client: Socket,
-    @MessageBody() { questionId, anwserId, userEntry }: AnwserQuestionDto,
+    @MessageBody() answerQuestionDto: AnswerQuestionDto,
     @WsOptionalUser() user: User | GuestUser,
   ) {
-    console.log('ANWSER QUESTIUONB');
+    //console.log('Receive answer', answerQuestionDto);
     const joinCode = client.data.joinCode as string | undefined;
     if (!joinCode) return false;
     const state = this.getState(joinCode);
     if (!state) return false;
-    if (state.anwserDueTime < new Date()) return false;
-    console.log('vse je validno');
+    if (state.answerDueTime < new Date()) return false;
+    if (
+      state.currentQuestionStartTime > answerQuestionDto.answerTime ||
+      state.currentQuestionStartTime +
+        state.quiz.questions[state.currentQuestion].customTime * 1000 <
+        answerQuestionDto.answerTime
+    )
+      return false;
+    state.receivedAnswers++;
     const id = 'id' in user ? user.id : user.guestId;
-    const anwsered = !!state.results
+    const answered = !!state.results
       .at(-1)!
       .find(({ user: u }) => ('id' in u ? u.id === id : u.guestId === id));
-    console.log('anwsered ', anwsered);
-    if (!anwsered) return false;
+    if (answered) return false;
+    const maxScore = 2000;
+    const totalTime =
+      state.quiz.questions[state.currentQuestion].customTime * 1000 || 20;
+    const answerTime =
+      answerQuestionDto.answerTime - state.currentQuestionStartTime;
 
-    const quizAnwser: QuizAnwser = {
+    const score = Math.max(
+      0,
+      Math.round(maxScore * (1 - answerTime / totalTime)),
+    );
+    //const score = 100 + Math.ceil((now - state.currentQuestionStartTime) / 100);
+    const quizAnswer: QuizAnswer = {
       user,
-      questionId,
-      anwserId,
-      userEntry,
+      ...answerQuestionDto,
+      score,
     };
+    // if custom answer answerId=true or false RTOGER THAT (10-4, OVER) ROGER DODGER
+    // emit.finish-question, when receiveAnswers>=users.len, users-> sorted by totalScore
+    // "time-elapsed-question" subscribeMessage => all unanswered users = 0 score added => emit finish question
+    let username: string | null = null;
 
-    state.results.at(-1)!.push(quizAnwser);
+    if (!(user instanceof User)) {
+      username = user.guestUsername;
+      await this.resultsService.create({
+        username: username,
+        quizId: state.quiz.id,
+        questionId: answerQuestionDto.questionId ?? undefined,
+        userEntry: answerQuestionDto.userEntry ?? undefined,
+        answerId: answerQuestionDto.answerId ?? undefined,
+      });
+    } else {
+      await this.resultsService.create({
+        userId: id,
+        quizId: state.quiz.id,
+        questionId: answerQuestionDto.questionId ?? undefined,
+        userEntry: answerQuestionDto.userEntry ?? undefined,
+        answerId: answerQuestionDto.answerId ?? undefined,
+      });
+    }
 
-    this.server.to(joinCode).emit('player-anwsered', {
+    state.results.at(-1)!.push(quizAnswer);
+
+    if (answerQuestionDto.isCustomCorrect === undefined) {
+      if (answerQuestionDto.answerId) {
+        const answer = await this.answersService.findOne(
+          answerQuestionDto.answerId,
+        );
+        if (answer) {
+          if (answer?.isCorrect === true) {
+            user.totalScore += score;
+          }
+        }
+      }
+    } else {
+      if (answerQuestionDto.isCustomCorrect === 'true') {
+        user.totalScore += score;
+      }
+    }
+
+    this.server.to(joinCode).emit('player-answered', {
       user,
-      quizAnwser,
+      quizAnswer: quizAnswer,
     });
 
+    if (state.receivedAnswers >= state.players.length) {
+      state.players.sort((a, b) => (a.totalScore > b.totalScore ? -1 : 1));
+      this.server.to(joinCode).emit('finish-question', state.players);
+    }
+
     return true;
+  }
+
+  @SubscribeMessage('time-elapsed-question')
+  finishQuestion(@ConnectedSocket() client: Socket) {
+    const joinCode = client.data.joinCode as string | undefined;
+    if (!joinCode) return false;
+    const state = this.getState(joinCode);
+    if (!state) return false;
+
+    this.server.to(joinCode).emit('finish-question', state.players);
   }
 
   @SubscribeMessage('kick-player')
@@ -301,6 +381,11 @@ export class SessionsGateway {
   @SubscribeMessage('next-question')
   nextQuestion(@ConnectedSocket() client: Socket) {
     const joinCode = client.data.joinCode as string;
+    const state = this.getState(joinCode);
+    if (state) {
+      state.receivedAnswers = 0;
+    }
+
     this.sendNextQuestion(joinCode);
   }
 
@@ -310,7 +395,7 @@ export class SessionsGateway {
     const joinCode = client.data.joinCode as string;
     const state = this.getState(joinCode);
     if (!state || state.status !== 'LOBBY') return;
-
+    state.receivedAnswers = 0;
     this.updateState(joinCode, {
       status: 'STARTED',
     });
@@ -321,6 +406,8 @@ export class SessionsGateway {
   async sendNextQuestion(joinCode: string) {
     const state = this.getState(joinCode);
     if (!state) return;
+    state.currentQuestionStartTime = Date.now();
+
     const newQuestionIndex = state.currentQuestion + 1;
 
     if (newQuestionIndex >= state.quiz.questions.length) {
@@ -332,18 +419,14 @@ export class SessionsGateway {
     const dueTime = dayjs().add(question.customTime, 'seconds').toDate();
     this.updateState(joinCode, {
       currentQuestion: newQuestionIndex,
-      anwserDueTime: dueTime,
+      answerDueTime: dueTime,
       results: state.results,
     });
 
     const sockets = await this.server.in(joinCode).fetchSockets();
-    console.log('num of sockets in ', joinCode, sockets.length, sockets);
+    //console.log('num of sockets in ', joinCode, sockets.length, sockets);
 
-    this.server.to(joinCode).emit('next-question', {
-      question,
-      index: newQuestionIndex,
-      dueTime,
-    });
+    this.server.to(joinCode).emit('next-question', newQuestionIndex);
   }
 
   onQuizEnded(joinCode: string, state: QuizState) {
@@ -353,7 +436,6 @@ export class SessionsGateway {
 
     this.server.to(joinCode).disconnectSockets();
     this.clearState(joinCode);
-    console.log(state);
   }
 
   onUserDissconected(joinCode: string, user: User | GuestUser) {
