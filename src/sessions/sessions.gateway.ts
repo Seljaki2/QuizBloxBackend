@@ -60,6 +60,7 @@ export type QuizState = {
 
 @WebSocketGateway({
   cors: true,
+  namespace: 'socket'
 })
 @UseFilters(new BaseWsExceptionFilter())
 @UsePipes(new ValidationPipe())
