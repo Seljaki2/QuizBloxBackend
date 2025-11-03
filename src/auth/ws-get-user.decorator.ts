@@ -19,7 +19,7 @@ export const WsOptionalUser = createParamDecorator(
     const user = client.data.user
       ? (client.data.user as User)
       : (client.data.guestUser as User);
-    console.log(user);
+    //console.log(user);
     if (!user)
       throw new Error('User or guest user not found on WebSocket context.');
 

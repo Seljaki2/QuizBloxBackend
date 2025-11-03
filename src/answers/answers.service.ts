@@ -19,11 +19,14 @@ export class AnswersService {
   ) {}
 
   async findAll(): Promise<Answer[]> {
-    return await this.answersRepository.find();
+    return await this.answersRepository.find({ relations: ['media'] });
   }
 
   async findOne(id: string): Promise<Answer | null> {
-    return await this.answersRepository.findOneBy({ id: id });
+    return await this.answersRepository.findOne({
+      where: { id: id },
+      relations: ['media'],
+    });
   }
 
   async create(

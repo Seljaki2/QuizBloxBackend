@@ -27,6 +27,9 @@ import { KickPlayerDto } from './dto/kick-player.dto';
 import { ResultsService } from '../results/results.service';
 import { AnswersService } from '../answers/answers.service';
 
+//if isTeacher, user = sessionHost -> results per question for a quiz
+//if !isTeacher, user results? -> total score; average, correctlyAnswered
+
 type GuestUser = {
   guestUsername: string;
   guestId: string;
@@ -288,6 +291,11 @@ export class SessionsGateway {
     // "time-elapsed-question" subscribeMessage => all unanswered users = 0 score added => emit finish question
     let username: string | null = null;
 
+    console.log('sessionId', state.sessionId);
+    console.log(
+      'answerQuestionDto.isCustomCorrect',
+      answerQuestionDto.isCustomCorrect,
+    );
     if (!(user instanceof User)) {
       username = user.guestUsername;
       await this.resultsService.create({
@@ -296,6 +304,8 @@ export class SessionsGateway {
         questionId: answerQuestionDto.questionId ?? undefined,
         userEntry: answerQuestionDto.userEntry ?? undefined,
         answerId: answerQuestionDto.answerId ?? undefined,
+        sessionId: state.sessionId,
+        isCustomEntryCorrect: answerQuestionDto.isCustomCorrect ?? undefined,
       });
     } else {
       await this.resultsService.create({
@@ -304,10 +314,17 @@ export class SessionsGateway {
         questionId: answerQuestionDto.questionId ?? undefined,
         userEntry: answerQuestionDto.userEntry ?? undefined,
         answerId: answerQuestionDto.answerId ?? undefined,
+        sessionId: state.sessionId,
+        isCustomEntryCorrect: answerQuestionDto.isCustomCorrect ?? undefined,
       });
     }
 
     state.results.at(-1)!.push(quizAnswer);
+
+    console.log(
+      'answerQuestionDto.isCustomEntryCorrect',
+      answerQuestionDto.isCustomCorrect,
+    );
 
     if (answerQuestionDto.isCustomCorrect === undefined) {
       if (answerQuestionDto.answerId) {
@@ -315,7 +332,10 @@ export class SessionsGateway {
           answerQuestionDto.answerId,
         );
         if (answer) {
-          if (answer?.isCorrect === true) {
+          if (
+            answer?.isCorrect === true ||
+            answerQuestionDto.isCustomCorrect === 'true'
+          ) {
             user.totalScore += score;
           }
         }
@@ -325,11 +345,6 @@ export class SessionsGateway {
         user.totalScore += score;
       }
     }
-
-    this.server.to(joinCode).emit('player-answered', {
-      user,
-      quizAnswer: quizAnswer,
-    });
 
     if (state.receivedAnswers >= state.players.length) {
       state.players.sort((a, b) => (a.totalScore > b.totalScore ? -1 : 1));
@@ -366,16 +381,49 @@ export class SessionsGateway {
   }
 
   @SubscribeMessage('close-session')
-  closeSession(
+  async closeSession(
     @ConnectedSocket() client: Socket,
-    //@WsCurrentUser() user: User,
-    // @MessageBody() { sessionId }: CloseSessionDto
+    @WsCurrentUser() user: User,
+    //@MessageBody() { sessionId  }: CloseSessionDto
   ) {
     //this.sessionsService.delete(sessionId)
+    const joinCode = client.data.joinCode as string | undefined;
+    if (!joinCode) return;
+    const state = this.getState(joinCode);
+    if (!state) return;
+
+    let totalScoreInSession = 0;
+
+    await this.sessionsService.update(state.sessionId, state.players.length);
+    for (const player of state.players) {
+      totalScoreInSession += player.totalScore;
+
+      if (player instanceof User) {
+        await this.usersService.createSessionScore({
+          sessionId: state.sessionId,
+          userId: player.id ?? undefined,
+          totalScore: player.totalScore,
+        });
+      } else {
+        await this.usersService.createSessionScore({
+          sessionId: state.sessionId,
+          userId: player.guestId,
+          totalScore: player.totalScore,
+        });
+      }
+    }
+
+    /*
+    if host
+     */
+
+    /*
     this.onQuizEnded(
       client.data.joinCode,
       this.getState(client.data.joinCode)!,
     );
+
+     */
   }
 
   @SubscribeMessage('next-question')

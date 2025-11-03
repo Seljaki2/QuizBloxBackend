@@ -10,6 +10,7 @@ import { AnswersService } from '../answers/answers.service';
 import { Answer } from '../answers/entities/answer.entity';
 import { QuestionsService } from '../questions/questions.service';
 import { User } from '../users/entities/user.entity';
+import { SessionsService } from 'src/sessions/sessions.service';
 
 @Injectable()
 export class ResultsService {
@@ -20,6 +21,7 @@ export class ResultsService {
     private readonly quizzesService: QuizzesService,
     private readonly answersService: AnswersService,
     private readonly questionsService: QuestionsService,
+    private readonly sessionsService: SessionsService,
   ) {}
 
   async findAllByUser(payload: FirebasePayload) {
@@ -50,6 +52,10 @@ export class ResultsService {
       answer = await this.answersService.findOne(createResultDto.answerId);
     }
 
+    const session = await this.sessionsService.findOne(
+      createResultDto.sessionId,
+    );
+
     const result: Result = this.resultsRepository.create({
       user: user ?? undefined,
       username: createResultDto.username ?? undefined,
@@ -57,6 +63,8 @@ export class ResultsService {
       question: question!,
       answer: answer ?? undefined,
       userEntry: createResultDto.userEntry ?? undefined,
+      session: session!,
+      isUserEntryCorrect: Boolean(createResultDto.isCustomEntryCorrect),
     });
 
     return await this.resultsRepository.insert(result);

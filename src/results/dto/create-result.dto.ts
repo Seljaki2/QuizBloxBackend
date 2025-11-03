@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsBooleanString,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class CreateResultDto {
   @IsString()
@@ -24,4 +30,12 @@ export class CreateResultDto {
   @IsString()
   @IsOptional()
   userEntry?: string;
+
+  @IsUUID()
+  @IsNotEmpty()
+  sessionId: string;
+
+  @IsBooleanString()
+  @IsOptional()
+  isCustomEntryCorrect?: string;
 }
