@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { SessionsService } from './sessions.service';
 import { UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
 import {
@@ -242,6 +243,7 @@ export class SessionsGateway {
       return {
         players: newPlayers,
         quiz: state.quiz,
+        sessionId: state.sessionId
       };
     }
   }
@@ -252,19 +254,12 @@ export class SessionsGateway {
     @MessageBody() answerQuestionDto: AnswerQuestionDto,
     @WsOptionalUser() user: User | GuestUser,
   ) {
-    //console.log('Receive answer', answerQuestionDto);
+    console.log('Receive answer', answerQuestionDto);
     const joinCode = client.data.joinCode as string | undefined;
     if (!joinCode) return false;
     const state = this.getState(joinCode);
     if (!state) return false;
-    if (state.answerDueTime < new Date()) return false;
-    if (
-      state.currentQuestionStartTime > answerQuestionDto.answerTime ||
-      state.currentQuestionStartTime +
-        state.quiz.questions[state.currentQuestion].customTime * 1000 <
-        answerQuestionDto.answerTime
-    )
-      return false;
+    if (state.answerDueTime <= new Date()) return false;
     state.receivedAnswers++;
     const id = 'id' in user ? user.id : user.guestId;
     const answered = !!state.results
