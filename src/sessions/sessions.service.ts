@@ -35,17 +35,23 @@ export class SessionsService {
     return this.sessionsRepository.delete(id);
   }
 
-  async findAllByHost(id: string) {
-    const user = await this.usersRepository.findOneBy({ id: id });
+  async findAllByUser(payload: FirebasePayload) {
+    const user = await this.usersRepository.findOneBy({ id: payload.user_id });
 
     if (!user) {
       return new NotFoundException('User not found');
     }
 
-    return await this.sessionsRepository.find({
+    const sessions = await this.sessionsRepository.find({
       where: { host: { id: user.id } },
       relations: ['quiz'],
     });
+
+    return await Promise.all(
+      sessions.map((session) =>
+        this.findAllResultsBySession(session.id, payload),
+      ),
+    );
   }
 
   async findAllResultsBySession(id: string, payload: FirebasePayload) {
@@ -70,7 +76,7 @@ export class SessionsService {
     });
 
     const userQuestionAnswers = await this.resultsRepository.find({
-      where: { session: { id: id }, user: { id: payload.user_id} },
+      where: { session: { id: id }, user: { id: payload.user_id } },
       relations: ['question', 'answer', 'user'],
     });
 
@@ -118,7 +124,7 @@ export class SessionsService {
         (Number(avg) / (session.playerCount || 1)) * 100;
     });
 
-    Object.entries(averageByQuestion).forEach(([questionId, avg]) => {
+    Object.entries(averageByQuestion).forEach(([, avg]) => {
       averageResultForQuiz += Number(avg);
     });
 
