@@ -1,7 +1,7 @@
 import { unlink } from 'fs';
 import path from 'path';
 import { Base } from 'src/common/entities/base.entity';
-import { AfterRemove, BeforeRemove, Column, Entity } from 'typeorm';
+import { BeforeRemove, Column, Entity } from 'typeorm';
 import { UPLOAD_DESTINATION } from '../upload-destination';
 
 @Entity()

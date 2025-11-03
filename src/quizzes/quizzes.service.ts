@@ -20,12 +20,15 @@ export class QuizzesService {
 
   async findAll(): Promise<Quiz[]> {
     return await this.quizzesRepository.find({
-      relations: ['questions'],
+      relations: ['subject', 'questions', 'creator'],
     });
   }
 
   async findOne(id: string): Promise<Quiz | null> {
-    return await this.quizzesRepository.findOneBy({ id: id });
+    return await this.quizzesRepository.findOne({
+      where: { id: id },
+      relations: ['subject', 'questions', 'creator', 'questions.answers.media'],
+    });
   }
 
   async create(

@@ -1,26 +1,15 @@
 import {
   IsBooleanString,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
 } from 'class-validator';
 
-export class CreateResultDto {
-  @IsString()
-  @IsOptional()
-  userId?: string;
-
-  @IsString()
-  @IsOptional()
-  username?: string;
-
+export class AnswerQuestionDto {
   @IsUUID()
   @IsNotEmpty()
-  quizId: string;
-
-  @IsUUID()
-  @IsOptional()
   questionId: string;
 
   @IsUUID()
@@ -31,11 +20,10 @@ export class CreateResultDto {
   @IsOptional()
   userEntry?: string;
 
-  @IsUUID()
-  @IsNotEmpty()
-  sessionId: string;
+  @IsNumber()
+  answerTime: number;
 
   @IsBooleanString()
   @IsOptional()
-  isCustomEntryCorrect?: string;
+  isCustomCorrect?: string;
 }

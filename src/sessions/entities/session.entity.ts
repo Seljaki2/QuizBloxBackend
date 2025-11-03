@@ -13,4 +13,10 @@ export class Session extends Base {
 
   @Column({ nullable: true })
   endTime: Date;
+
+  @Column({ nullable: true })
+  playerCount: number;
+
+  //@Column({ nullable: true, unique: true })
+  //joinCode?: string
 }

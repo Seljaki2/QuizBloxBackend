@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany, OneToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 import { Base } from '../../common/entities/base.entity';
 import { Answer } from '../../answers/entities/answer.entity';
 import { Media } from 'src/media/entities/media.entity';
@@ -21,10 +21,10 @@ export class Question extends Base {
   })
   answers?: Answer[];
 
-  @OneToOne(() => Media, { nullable: true })
+  @ManyToOne(() => Media, { nullable: true, eager: true })
   media?: Media;
 
-  @Column({ nullable: true })
+  @Column({ default: 20 })
   customTime: number;
 
   @Column({ type: 'enum', enum: QuestionType })

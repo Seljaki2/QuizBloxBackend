@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Quiz } from 'src/quizzes/entities/quiz.entity';
 import { Result } from '../../results/entities/result.entity';
+import { UserSessionScore } from './user-session-score.entity';
 
 @Entity()
 export class User {
@@ -45,4 +46,12 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(
+    () => UserSessionScore,
+    (userSessionScore) => userSessionScore.user,
+  )
+  sessionScores: UserSessionScore[];
+
+  totalScore: number = 0;
 }

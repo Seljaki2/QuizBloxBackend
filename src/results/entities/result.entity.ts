@@ -4,6 +4,7 @@ import { Answer } from '../../answers/entities/answer.entity';
 import { User } from '../../users/entities/user.entity';
 import { Quiz } from '../../quizzes/entities/quiz.entity';
 import { Question } from '../../questions/entities/question.entity';
+import { Session } from '../../sessions/entities/session.entity';
 
 @Entity()
 export class Result extends Base {
@@ -24,4 +25,10 @@ export class Result extends Base {
 
   @Column({ nullable: true })
   userEntry?: string;
+
+  @Column({ nullable: true })
+  isUserEntryCorrect?: boolean;
+
+  @ManyToOne(() => Session)
+  session: Session;
 }
