@@ -69,6 +69,11 @@ export class SessionsService {
       },
     });
 
+    const userQuestionAnswers = await this.resultRepository.find({
+      where: { session: { id: id }, user: { id: payload.user_id} },
+      relations: ['question', 'answer', 'user'],
+    });
+
     scoresBySession.forEach((player) => {
       quizAverageScore += player.totalScore;
     });
@@ -79,6 +84,7 @@ export class SessionsService {
       return {
         quizAverageScore: quizAverageScore,
         userScore: userScore,
+        userQuestionAnswers: userQuestionAnswers,
       };
     }
 
