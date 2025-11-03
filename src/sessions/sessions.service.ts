@@ -85,6 +85,7 @@ export class SessionsService {
         quizAverageScore: quizAverageScore,
         userScore: userScore,
         userQuestionAnswers: userQuestionAnswers,
+        session: session,
       };
     }
 
