@@ -42,10 +42,15 @@ export class SessionsService {
       return new NotFoundException('User not found');
     }
 
-    const sessions = await this.sessionsRepository.find({
+    const sessions = await (user.isTeacher ? this.sessionsRepository.find({
       where: { host: { id: user.id } },
       relations: ['quiz'],
-    });
+    }) : this.sessionsRepository
+        .createQueryBuilder('session')
+        .select('session.id')
+        .innerJoin('result', 'result', 'result.sessionId = session.id')
+        .where('result.userId = :id', { id: user.id })
+        .getMany() )
 
     return await Promise.all(
       sessions.map((session) =>
@@ -100,6 +105,8 @@ export class SessionsService {
       relations: ['question', 'answer', 'session'],
     });
 
+    //console.log(results)
+
     const resultsByQuestion = {};
     let averageResultForQuiz = 0;
 
@@ -108,12 +115,11 @@ export class SessionsService {
         const questionId = result.question.id;
         const isCorrect = result.answer?.isCorrect || result.isUserEntryCorrect;
 
-        if (isCorrect) {
-          if (!resultsByQuestion[questionId]) {
-            resultsByQuestion[questionId] = 0;
-          }
+        if (!resultsByQuestion[questionId]) 
+          resultsByQuestion[questionId] = 0;
+
+        if (isCorrect)
           resultsByQuestion[questionId]++;
-        }
       }
     });
 
@@ -128,7 +134,8 @@ export class SessionsService {
       averageResultForQuiz += Number(avg);
     });
 
-    console.log('session.quiz', session.quiz);
+    console.log(Object.entries(resultsByQuestion).length)
+    //console.log('session.quiz', session.quiz);
 
     averageResultForQuiz /= session.quiz.questions.length || 1;
 
