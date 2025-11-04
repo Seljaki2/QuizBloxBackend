@@ -82,7 +82,7 @@ export class SessionsService {
 
     const userQuestionAnswers = await this.resultsRepository.find({
       where: { session: { id: id }, user: { id: payload.user_id } },
-      relations: ['question', 'answer', 'user'],
+      relations: ['question', 'answer', 'user', 'answer.media'],
     });
 
     scoresBySession.forEach((player) => {
