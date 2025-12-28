@@ -61,7 +61,7 @@ export type QuizState = {
 
 @WebSocketGateway({
   cors: true,
-  namespace: 'socket'
+  namespace: 'socket',
 })
 @UseFilters(new BaseWsExceptionFilter())
 @UsePipes(new ValidationPipe())
@@ -243,7 +243,7 @@ export class SessionsGateway {
       return {
         players: newPlayers,
         quiz: state.quiz,
-        sessionId: state.sessionId
+        sessionId: state.sessionId,
       };
     }
   }
@@ -448,12 +448,11 @@ export class SessionsGateway {
       results: state.results,
     });
 
-
     this.server.to(joinCode).emit('next-question', newQuestionIndex);
   }
 
   async onQuizEnded(joinCode: string, state: QuizState) {
-    await this.saveSessionResults(joinCode)
+    await this.saveSessionResults(joinCode);
     this.server.to(joinCode).emit('quiz-ended', {
       results: state.results,
     });
@@ -473,5 +472,63 @@ export class SessionsGateway {
       user,
       users: p,
     });
+  }
+
+  @SubscribeMessage('submit-final-score')
+  async submitFinalScore(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() { sessionId, bonus }: { sessionId: string; bonus?: number },
+    @WsOptionalUser() user: User | GuestUser,
+  ) {
+    try {
+      if (!sessionId) {
+        return { error: 'Missing sessionId' };
+      }
+      if (!user) {
+        return { error: 'User not present on socket' };
+      }
+
+      let joinCode: string | undefined;
+      for (const [code, st] of this.states.entries()) {
+        if (st.sessionId === sessionId) {
+          joinCode = code;
+          break;
+        }
+      }
+      if (!joinCode) {
+        return { error: 'Session not found' };
+      }
+
+      const state = this.getState(joinCode);
+      if (!state) {
+        return { error: 'State not found' };
+      }
+
+      const id = 'id' in user ? user.id : user.guestId;
+      const player = state.players.find((p) =>
+        'id' in p ? p.id === id : p.guestId === id,
+      );
+
+      const existingScore = player
+        ? player.totalScore
+        : ((user as any).totalScore ?? 0);
+      const finalScore = existingScore + (Number(bonus) || 0);
+
+      if (player) {
+        player.totalScore = finalScore;
+        this.updateState(joinCode, { players: state.players });
+      }
+
+      await this.usersService.createSessionScore({
+        sessionId,
+        userId: id,
+        totalScore: finalScore,
+      });
+
+      return { success: true, finalScore };
+    } catch (err) {
+      console.error('submit-final-score error', err);
+      return { error: 'Internal server error' };
+    }
   }
 }
