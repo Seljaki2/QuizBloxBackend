@@ -26,4 +26,7 @@ export class AnswerQuestionDto {
   @IsBooleanString()
   @IsOptional()
   isCustomCorrect?: string;
+
+  @IsNumber()
+  bonus: number;
 }

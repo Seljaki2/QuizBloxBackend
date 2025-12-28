@@ -102,8 +102,8 @@ export class SessionsGateway {
   }
 
   async handleConnection(client: Socket) {
-    //console.log(client.handshake.headers);
-    //console.log('new CONNECTED');
+    ////console.log(client.handshake.headers);
+    ////console.log('new CONNECTED');
     const username = client.handshake.auth.guestUsername as undefined | string;
     const gid = client.handshake.auth.guestId as undefined | string;
     if (username && gid) {
@@ -123,19 +123,19 @@ export class SessionsGateway {
           (client.handshake.auth?.token as string | undefined) ||
           client.handshake.headers?.authorization?.split(' ')[1];
         if (!token) return this.dissconectSocket(client); //throw new WsException('No auth token');
-        //console.log('TOKEN ', token);
+        ////console.log('TOKEN ', token);
         const decodedToken = await this.firebaseService
           .getAuth()
           .verifyIdToken(token);
         const user = await this.usersService.getById(decodedToken.uid);
-        //console.log(user);
+        ////console.log(user);
         if (!user) return this.dissconectSocket(client); //throw new WsException("User doesn't exist");
         client.data.user = user;
-        //console.log('User connected', user);
+        ////console.log('User connected', user);
         client.emit('ready');
         return true;
       } catch (error) {
-        console.error('Invalid Firebase token:', error);
+        //console.error('Invalid Firebase token:', error);
         throw new WsException('Authentication failed');
       }
     }
@@ -155,7 +155,7 @@ export class SessionsGateway {
   }
 
   dissconectSocket(socket: Socket) {
-    //console.log('DISSCONECTING SOCKET');
+    ////console.log('DISSCONECTING SOCKET');
     socket.disconnect(true);
     return false;
   }
@@ -202,7 +202,7 @@ export class SessionsGateway {
     this.setState(joinCode, state);
 
     //
-    // console.log('generated state ', state);
+    // //console.log('generated state ', state);
 
     return {
       session,
@@ -233,7 +233,7 @@ export class SessionsGateway {
       this.updateState(joinCode, {
         players: newPlayers,
       });
-      //console.log('USER JOINED SESSION ', u);
+      ////console.log('USER JOINED SESSION ', u);
 
       client.to(joinCode).emit('player-joined', {
         user: u,
@@ -276,6 +276,8 @@ export class SessionsGateway {
       0,
       Math.round(maxScore * (1 - answerTime / totalTime)),
     );
+    console.log('Calculated score', score);
+
     //const score = 100 + Math.ceil((now - state.currentQuestionStartTime) / 100);
     const quizAnswer: QuizAnswer = {
       user,
@@ -286,12 +288,8 @@ export class SessionsGateway {
     // emit.finish-question, when receiveAnswers>=users.len, users-> sorted by totalScore
     // "time-elapsed-question" subscribeMessage => all unanswered users = 0 score added => emit finish question
     let username: string | null = null;
-
-    console.log('sessionId', state.sessionId);
-    console.log(
-      'answerQuestionDto.isCustomCorrect',
-      answerQuestionDto.isCustomCorrect,
-    );
+    user.totalScore += answerQuestionDto.bonus
+    //console.log('sessionId', state.sessionId);
     if (!(user instanceof User)) {
       username = user.guestUsername;
       await this.resultsService.create({
@@ -316,11 +314,6 @@ export class SessionsGateway {
     }
 
     state.results.at(-1)!.push(quizAnswer);
-
-    console.log(
-      'answerQuestionDto.isCustomEntryCorrect',
-      answerQuestionDto.isCustomCorrect,
-    );
 
     if (answerQuestionDto.isCustomCorrect === undefined) {
       if (answerQuestionDto.answerId) {
@@ -380,13 +373,13 @@ export class SessionsGateway {
   }
 
   async saveSessionResults(joinCode: string) {
-    console.log('Saving session results for joinCode', joinCode);
+    //console.log('Saving session results for joinCode', joinCode);
     const state = this.getState(joinCode);
     if (!state) return;
 
     await this.sessionsService.update(state.sessionId, state.players.length);
     for (const player of state.players) {
-      console.log('Saving score for player', player);
+      //console.log('Saving score for player', player);
       if (player instanceof User) {
         await this.usersService.createSessionScore({
           sessionId: state.sessionId,
@@ -455,10 +448,11 @@ export class SessionsGateway {
     await this.saveSessionResults(joinCode);
     this.server.to(joinCode).emit('quiz-ended', {
       results: state.results,
+      state: state,
     });
 
-    this.server.to(joinCode).disconnectSockets();
-    this.clearState(joinCode);
+    //this.server.to(joinCode).disconnectSockets();
+    //this.clearState(joinCode);
   }
 
   onUserDissconected(joinCode: string, user: User | GuestUser) {
@@ -472,63 +466,5 @@ export class SessionsGateway {
       user,
       users: p,
     });
-  }
-
-  @SubscribeMessage('submit-final-score')
-  async submitFinalScore(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() { sessionId, bonus }: { sessionId: string; bonus?: number },
-    @WsOptionalUser() user: User | GuestUser,
-  ) {
-    try {
-      if (!sessionId) {
-        return { error: 'Missing sessionId' };
-      }
-      if (!user) {
-        return { error: 'User not present on socket' };
-      }
-
-      let joinCode: string | undefined;
-      for (const [code, st] of this.states.entries()) {
-        if (st.sessionId === sessionId) {
-          joinCode = code;
-          break;
-        }
-      }
-      if (!joinCode) {
-        return { error: 'Session not found' };
-      }
-
-      const state = this.getState(joinCode);
-      if (!state) {
-        return { error: 'State not found' };
-      }
-
-      const id = 'id' in user ? user.id : user.guestId;
-      const player = state.players.find((p) =>
-        'id' in p ? p.id === id : p.guestId === id,
-      );
-
-      const existingScore = player
-        ? player.totalScore
-        : ((user as any).totalScore ?? 0);
-      const finalScore = existingScore + (Number(bonus) || 0);
-
-      if (player) {
-        player.totalScore = finalScore;
-        this.updateState(joinCode, { players: state.players });
-      }
-
-      await this.usersService.createSessionScore({
-        sessionId,
-        userId: id,
-        totalScore: finalScore,
-      });
-
-      return { success: true, finalScore };
-    } catch (err) {
-      console.error('submit-final-score error', err);
-      return { error: 'Internal server error' };
-    }
   }
 }
