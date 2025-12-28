@@ -345,6 +345,9 @@ export class SessionsGateway {
     if (state.receivedAnswers >= state.players.length) {
       state.players.sort((a, b) => (a.totalScore > b.totalScore ? -1 : 1));
       this.server.to(joinCode).emit('finish-question', state.players);
+      if (state.currentQuestion + 1 >= state.quiz.questions.length) {
+        await this.onQuizEnded(joinCode, state);
+      }
     }
 
     return true;
@@ -376,24 +379,14 @@ export class SessionsGateway {
     }
   }
 
-  @SubscribeMessage('close-session')
-  async closeSession(
-    @ConnectedSocket() client: Socket,
-    @WsCurrentUser() user: User,
-    //@MessageBody() { sessionId  }: CloseSessionDto
-  ) {
-    //this.sessionsService.delete(sessionId)
-    const joinCode = client.data.joinCode as string | undefined;
-    if (!joinCode) return;
+  async saveSessionResults(joinCode: string) {
+    console.log('Saving session results for joinCode', joinCode);
     const state = this.getState(joinCode);
     if (!state) return;
 
-    let totalScoreInSession = 0;
-
     await this.sessionsService.update(state.sessionId, state.players.length);
     for (const player of state.players) {
-      totalScoreInSession += player.totalScore;
-
+      console.log('Saving score for player', player);
       if (player instanceof User) {
         await this.usersService.createSessionScore({
           sessionId: state.sessionId,
@@ -408,18 +401,6 @@ export class SessionsGateway {
         });
       }
     }
-
-    /*
-    if host
-     */
-
-    /*
-    this.onQuizEnded(
-      client.data.joinCode,
-      this.getState(client.data.joinCode)!,
-    );
-
-     */
   }
 
   @SubscribeMessage('next-question')
@@ -447,7 +428,7 @@ export class SessionsGateway {
     this.sendNextQuestion(joinCode);
   }
 
-  async sendNextQuestion(joinCode: string) {
+  sendNextQuestion(joinCode: string) {
     const state = this.getState(joinCode);
     if (!state) return;
     state.currentQuestionStartTime = Date.now();
@@ -467,13 +448,12 @@ export class SessionsGateway {
       results: state.results,
     });
 
-    const sockets = await this.server.in(joinCode).fetchSockets();
-    //console.log('num of sockets in ', joinCode, sockets.length, sockets);
 
     this.server.to(joinCode).emit('next-question', newQuestionIndex);
   }
 
-  onQuizEnded(joinCode: string, state: QuizState) {
+  async onQuizEnded(joinCode: string, state: QuizState) {
+    await this.saveSessionResults(joinCode)
     this.server.to(joinCode).emit('quiz-ended', {
       results: state.results,
     });

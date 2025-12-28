@@ -37,26 +37,35 @@ export class SessionsService {
 
   async findAllByUser(payload: FirebasePayload) {
     const user = await this.usersRepository.findOneBy({ id: payload.user_id });
-
+    console.log('user', user);
     if (!user) {
       return new NotFoundException('User not found');
     }
 
-    const sessions = await (user.isTeacher ? this.sessionsRepository.find({
+    const sessions1 = await this.sessionsRepository.find({
       where: { host: { id: user.id } },
       relations: ['quiz'],
-    }) : this.sessionsRepository
+      order: { createdAt: 'DESC' },
+    })
+    const sessions2 = await this.sessionsRepository
         .createQueryBuilder('session')
         .select('session.id')
         .innerJoin('result', 'result', 'result.sessionId = session.id')
         .where('result.userId = :id', { id: user.id })
-        .getMany() )
-
-    return await Promise.all(
+        .orderBy('session.createdAt', 'DESC')
+        .getMany()
+    const sessions = [...sessions1, ...sessions2];
+    console.log('sessions', sessions);
+    const data = await Promise.all(
       sessions.map((session) =>
         this.findAllResultsBySession(session.id, payload),
       ),
     );
+
+    return data.map((d, index) => ({
+      ...d,
+      isHost: index < sessions1.length,
+    }));
   }
 
   async findAllResultsBySession(id: string, payload: FirebasePayload) {
@@ -80,6 +89,8 @@ export class SessionsService {
       },
     });
 
+    console.log('scoresBySession', scoresBySession);
+
     const userQuestionAnswers = await this.resultsRepository.find({
       where: { session: { id: id }, user: { id: payload.user_id } },
       relations: ['question', 'answer', 'user', 'answer.media', 'question.answers.media'],
@@ -90,7 +101,8 @@ export class SessionsService {
     });
 
     quizAverageScore = quizAverageScore / scoresBySession.length;
-
+    console.log('quizAverageScore', quizAverageScore);
+    console.log('scoresBySession.length', scoresBySession.length);
     if (session.host.id !== payload.user_id) {
       return {
         quizAverageScore: quizAverageScore,
